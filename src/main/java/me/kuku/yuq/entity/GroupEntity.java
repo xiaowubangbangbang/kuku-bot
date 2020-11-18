@@ -20,28 +20,28 @@ public class GroupEntity {
     @Column(unique = true, name = "group_")
     private Long group;
     @Lob
-    @Column(columnDefinition="text")
+    @Column(columnDefinition = "text")
     private String blackList;
     @Lob
-    @Column(columnDefinition="text")
+    @Column(columnDefinition = "text")
     private String whiteList;
     @Lob
-    @Column(columnDefinition="text")
+    @Column(columnDefinition = "text")
     private String violationList;
     @Lob
-    @Column(columnDefinition="text")
+    @Column(columnDefinition = "text")
     private String qaList;
     @Lob
-    @Column(columnDefinition="text")
+    @Column(columnDefinition = "text")
     private String adminList;
     @Lob
-    @Column(columnDefinition="text")
+    @Column(columnDefinition = "text")
     private String weiboList;
     @Lob
-    @Column(columnDefinition="text")
+    @Column(columnDefinition = "text")
     private String biliBiliList;
     @Lob
-    @Column(columnDefinition="text")
+    @Column(columnDefinition = "text")
     private String interceptList;
     private Boolean colorPic;
     private Boolean status;
@@ -56,80 +56,83 @@ public class GroupEntity {
     private Integer maxCommandCountOnTime;
     private Boolean locMonitor;
     private Boolean flashNotify;
+    @Lob
+    @Column(columnDefinition = "text")
+    private Long recallTime;
 
-    public GroupEntity(Long group){
+    public GroupEntity(Long group) {
         this.group = group;
     }
 
-    public JSONArray getBlackJsonArray(){
+    public JSONArray getBlackJsonArray() {
         if (blackList == null) return JSON.parseArray("[]");
         else return JSON.parseArray(blackList);
     }
 
-    public void setBlackJsonArray(JSONArray jsonArray){
+    public void setBlackJsonArray(JSONArray jsonArray) {
         this.blackList = jsonArray.toString();
     }
 
-    public JSONArray getWhiteJsonArray(){
+    public JSONArray getWhiteJsonArray() {
         if (whiteList == null) return JSON.parseArray("[]");
         else return JSON.parseArray(whiteList);
     }
 
-    public void setWhiteJsonArray(JSONArray jsonArray){
+    public void setWhiteJsonArray(JSONArray jsonArray) {
         this.whiteList = jsonArray.toString();
     }
 
-    public JSONArray getViolationJsonArray(){
+    public JSONArray getViolationJsonArray() {
         if (violationList == null) return JSON.parseArray("[]");
         else return JSON.parseArray(violationList);
     }
 
-    public void setViolationJsonArray(JSONArray jsonArray){
+    public void setViolationJsonArray(JSONArray jsonArray) {
         this.violationList = jsonArray.toString();
     }
 
-    public JSONArray getQaJsonArray(){
+    public JSONArray getQaJsonArray() {
         if (qaList == null) return JSON.parseArray("[]");
         else return JSON.parseArray(qaList);
     }
 
-    public void setQaJsonArray(JSONArray jsonArray){
+    public void setQaJsonArray(JSONArray jsonArray) {
         this.qaList = jsonArray.toString();
     }
 
-    public JSONArray getAdminJsonArray(){
+    public JSONArray getAdminJsonArray() {
         if (adminList == null) return JSON.parseArray("[]");
         else return JSON.parseArray(adminList);
     }
 
-    public void setAdminJsonArray(JSONArray jsonArray){
+    public void setAdminJsonArray(JSONArray jsonArray) {
         this.adminList = jsonArray.toString();
     }
 
-    public JSONArray getWeiboJsonArray(){
+    public JSONArray getWeiboJsonArray() {
         if (weiboList == null) return JSON.parseArray("[]");
         else return JSON.parseArray(weiboList);
     }
 
-    public void setWeiboJsonArray(JSONArray jsonArray){
+    public void setWeiboJsonArray(JSONArray jsonArray) {
         this.weiboList = jsonArray.toString();
     }
 
-    public JSONArray getBiliBiliJsonArray(){
+    public JSONArray getBiliBiliJsonArray() {
         if (biliBiliList == null) return JSON.parseArray("[]");
         else return JSON.parseArray(biliBiliList);
     }
 
-    public void setBiliBiliJsonArray(JSONArray jsonArray){
+    public void setBiliBiliJsonArray(JSONArray jsonArray) {
         this.biliBiliList = jsonArray.toString();
     }
 
-    public JSONArray getInterceptJsonArray(){
+    public JSONArray getInterceptJsonArray() {
         if (interceptList == null) return JSON.parseArray("[]");
         else return JSON.parseArray(interceptList);
     }
 
-    public void setInterceptJsonArray(JSONArray jsonArray){
+    public void setInterceptJsonArray(JSONArray jsonArray) {
         this.interceptList = jsonArray.toString();
     }
 }

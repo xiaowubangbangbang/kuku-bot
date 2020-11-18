@@ -26,14 +26,14 @@ public class BeforeController {
 
     @Global
     @Before
-    public void before(Message message, Long group, Long qq){
+    public void before(Message message, Long group, Long qq) {
         GroupEntity groupEntity = groupService.findByGroup(group);
         if (groupEntity == null) return;
         Integer maxCount = groupEntity.getMaxCommandCountOnTime();
         if (maxCount == null) maxCount = -1;
         if (maxCount < 0) return;
         List<String> list = message.toPath();
-        if (list.size() == 0) return;
+        if (list.isEmpty()) return;
         String command = list.get(0);
         String key = qq.toString() + command;
         Integer num = eh.get(key);
@@ -44,7 +44,7 @@ public class BeforeController {
 
     @Global
     @Cache
-    public void interIO(IOException e, long qq){
+    public void interIO(IOException e, long qq) {
         FunKt.getMif().at(qq).plus("出现io异常了，请重试！！");
     }
 }
