@@ -29,15 +29,15 @@ public class GroupEvent {
     private QQService qqService;
 
     @Event
-    public void groupMemberRequest(GroupMemberRequestEvent e) {
+    public void groupMemberRequest(GroupMemberRequestEvent e){
         GroupEntity groupEntity = groupService.findByGroup(e.getGroup().getId());
         if (groupEntity == null) return;
-        if (groupEntity.getAutoReview() != null && groupEntity.getAutoReview()) {
+        if (groupEntity.getAutoReview() != null && groupEntity.getAutoReview()){
             boolean status = true;
             JSONArray blackJsonArray = groupEntity.getBlackJsonArray();
-            for (int i = 0; i < blackJsonArray.size(); i++) {
+            for (int i = 0; i < blackJsonArray.size(); i++){
                 long black = blackJsonArray.getLong(i);
-                if (black == e.getQq().getId()) {
+                if (black == e.getQq().getId()){
                     status = false;
                     break;
                 }
@@ -68,7 +68,7 @@ public class GroupEvent {
     }
 
     @Event
-    public void groupMemberKick(GroupMemberLeaveEvent.Kick e) {
+    public void groupMemberKick(GroupMemberLeaveEvent.Kick e){
         long qq = e.getMember().getId();
         long group = e.getGroup().getId();
         GroupEntity groupEntity = groupService.findByGroup(group);
@@ -86,14 +86,15 @@ public class GroupEvent {
         long group = e.getGroup().getId();
         long qq = e.getMember().getId();
         GroupEntity groupEntity = groupService.findByGroup(group);
-        if (Boolean.valueOf(true).equals(groupEntity.getWelcomeMsg())) {
+        if (groupEntity == null) return;
+        if (Boolean.valueOf(true).equals(groupEntity.getWelcomeMsg())){
             e.getGroup().sendMessage(
                     FunKt.getMif().at(qq).plus(
                             "欢迎加入本群\n" +
                                     "您是本群的第" + (e.getGroup().getMembers().size() + 1) + "位成员\n" +
                                     "您可以愉快的与大家交流啦！！"
                     ).plus(FunKt.getMif().imageByUrl("https://q.qlogo.cn/g?b=qq&nk=" + qq + "&s=640"))
-                            .plus("一言：" + toolLogic.hiToKoTo().get("text"))
+                    .plus("一言：" + toolLogic.hiToKoTo().get("text"))
             );
         }
     }
