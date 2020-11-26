@@ -3,17 +3,16 @@ package me.kuku.yuq.controller;
 import com.IceCreamQAQ.Yu.annotation.Action;
 import com.IceCreamQAQ.Yu.annotation.Config;
 import com.IceCreamQAQ.Yu.annotation.Synonym;
+import com.IceCreamQAQ.Yu.job.JobManager;
 import com.icecreamqaq.yuq.FunKt;
+import com.icecreamqaq.yuq.YuQ;
 import com.icecreamqaq.yuq.annotation.GroupController;
 import com.icecreamqaq.yuq.annotation.PathVar;
 import com.icecreamqaq.yuq.annotation.QMsg;
 import com.icecreamqaq.yuq.controller.ContextSession;
 import com.icecreamqaq.yuq.entity.Group;
 import com.icecreamqaq.yuq.job.RainInfo;
-import com.icecreamqaq.yuq.message.Image;
-import com.icecreamqaq.yuq.message.Message;
-import com.icecreamqaq.yuq.message.MessageItemFactory;
-import com.icecreamqaq.yuq.message.XmlEx;
+import com.icecreamqaq.yuq.message.*;
 import me.kuku.yuq.dao.LoLiConDao;
 import me.kuku.yuq.entity.ConfigEntity;
 import me.kuku.yuq.entity.GroupEntity;
@@ -64,6 +63,8 @@ public class ToolController {
     private MessageItemFactory mif;
     @Inject
     private LoLiConDao loLiConDao;
+    @Inject
+    private JobManager jobManager;
     @Config("YuQ.Mirai.protocol")
     private String protocol;
 
@@ -215,24 +216,38 @@ public class ToolController {
     }
 
     @Action("撤回时间 {recallTime}")
+    @QMsg(at = true)
     public String setRecallTime(long group, String recallTime) {
-        GroupEntity groupEntity = new GroupEntity();
-        groupEntity.setRecallTime(Long.parseLong(recallTime));
-        groupService.save(groupEntity);
+        GroupEntity byGroup = groupService.findByGroup(group);
+        byGroup.setRecallTime(Long.parseLong(recallTime));
+        groupService.save(byGroup);
         return "撤回时间修改成功";
     }
 
     @Action("色图")
     @Synonym({"涩图来", "涩图", "来份涩图"})
-    public Message colorPic(long group, long qq) throws IOException {
-        GroupEntity groupEntity = groupService.findByGroup(group);
+    public Message colorPic(Group group, long qq) throws IOException {
+        GroupEntity groupEntity = groupService.findByGroup(group.getId());
         if (groupEntity == null || groupEntity.getColorPic() == null || Boolean.FALSE.equals(groupEntity.getColorPic()))
             return FunKt.getMif().at(qq).plus("该功能已关闭！！");
         String type = groupEntity.getColorPicType();
+        Message message;
+        MessageSource messageSource;
         switch (type) {
             case "danbooru":
-                byte[] bytes = OkHttpUtils.getBytes("https://api.kuku.me/danbooru");
-                return FunKt.getMif().imageByInputStream(new ByteArrayInputStream(bytes)).toMessage();
+                byte[] bytes = OkHttpUtils.getBytes("https://api.kuku.me/danbooru");   //发图
+                message = FunKt.getMif().imageByInputStream(new ByteArrayInputStream(bytes)).toMessage();
+                messageSource = group.sendMessage(message);
+                //撤回
+                new Thread(() -> {
+                    try {
+                        TimeUnit.SECONDS.sleep((groupEntity.getRecallTime() == null ? recallTime : groupEntity.getRecallTime()));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    messageSource.recall();
+                }).start();
+                return null;
             case "lolicon":
             case "loliconR18":
                 ConfigEntity configEntity = configService.findByType("loLiCon");
@@ -240,13 +255,24 @@ public class ToolController {
                 String apiKey = configEntity.getContent();
                 Result<Map<String, String>> result = toolLogic.colorPicByLoLiCon(apiKey, type.equals("loliconR18"));
                 Map<String, String> map = result.getData();
-                if (map == null) return FunKt.getMif().at(qq).plus(result.getMessage());
-                //撤回
-                new Thread(() -> Util.sleep(groupEntity.getRecallTime() == null ? recallTime : groupEntity.getRecallTime())).start();
+                message = FunKt.getMif().at(qq).plus(result.getMessage());
+                if (map == null) return message;
                 //保存lolicon涩图
                 loLiConDao.save(LoLiConEntity.builder().title(map.get("title")).pid(map.get("pid")).uid(map.get("uid")).url(map.get("url")).type(type).build());
                 byte[] by = toolLogic.piXivPicProxy(map.get("url"));
-                return FunKt.getMif().imageByInputStream(new ByteArrayInputStream(by)).toMessage();
+                //发图
+                message = FunKt.getMif().imageByInputStream(new ByteArrayInputStream(by)).toMessage();
+                messageSource = group.sendMessage(message);
+                //撤回
+                new Thread(() -> {
+                    try {
+                        TimeUnit.SECONDS.sleep((groupEntity.getRecallTime() == null ? recallTime : groupEntity.getRecallTime()));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    messageSource.recall();
+                }).start();
+                return null;
             default:
                 return Message.Companion.toMessage("色图类型不匹配！！");
         }
@@ -260,8 +286,19 @@ public class ToolController {
     }
 
     @Action("看美女")
-    public Image girl() throws IOException {
-        return FunKt.getMif().imageByUrl(toolLogic.girlImage());
+    public Image girl(Group group, long qq) throws IOException {
+        GroupEntity groupEntity = groupService.findByGroup(group.getId());
+        Message message = FunKt.getMif().imageByUrl(toolLogic.girlImage()).toMessage();
+        MessageSource sendMessage = group.sendMessage(message);
+        new Thread(() -> {
+            try {
+                TimeUnit.SECONDS.sleep((groupEntity.getRecallTime() == null ? recallTime : groupEntity.getRecallTime()));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            sendMessage.recall();
+        }).start();
+        return null;
     }
 
     @QMsg(at = true)

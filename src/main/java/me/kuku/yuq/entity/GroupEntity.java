@@ -19,6 +19,8 @@ public class GroupEntity {
     private Integer id;
     @Column(unique = true, name = "group_")
     private Long group;
+    @Column
+    private Long recallTime;
     @Lob
     @Column(columnDefinition = "text")
     private String blackList;
@@ -56,9 +58,6 @@ public class GroupEntity {
     private Integer maxCommandCountOnTime;
     private Boolean locMonitor;
     private Boolean flashNotify;
-    @Lob
-    @Column(columnDefinition = "text")
-    private Long recallTime;
 
     public GroupEntity(Long group) {
         this.group = group;
