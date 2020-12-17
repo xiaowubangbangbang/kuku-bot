@@ -15,9 +15,9 @@ import me.kuku.yuq.dao.LoLiConDao;
 import me.kuku.yuq.entity.ConfigEntity;
 import me.kuku.yuq.entity.GroupEntity;
 import me.kuku.yuq.entity.LoLiConEntity;
+import me.kuku.yuq.logic.MyApiLogic;
 import me.kuku.yuq.logic.QQAILogic;
 import me.kuku.yuq.logic.ToolLogic;
-import me.kuku.yuq.logic.MyApiLogic;
 import me.kuku.yuq.pojo.InstagramPojo;
 import me.kuku.yuq.pojo.Result;
 import me.kuku.yuq.service.ConfigService;
@@ -28,7 +28,6 @@ import me.kuku.yuq.utils.OkHttpUtils;
 import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.message.action.Nudge;
-import okhttp3.Response;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
@@ -41,7 +40,10 @@ import java.net.URLEncoder;
 import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unused")
@@ -574,4 +576,10 @@ public class ToolController {
     public Message cosplay() throws IOException {
         return FunKt.getMif().imageByByteArray(toolLogic.cosplay()).toMessage();
     }
+
+    @Action("写真")
+    public Image photo() throws IOException {
+        return FunKt.getMif().imageByByteArray(toolLogic.photo());
+    }
+
 }
