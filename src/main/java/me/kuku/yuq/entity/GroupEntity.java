@@ -37,6 +37,9 @@ public class GroupEntity {
     @Column(columnDefinition="text")
     private String adminList;
     @Lob
+    @Column(columnDefinition = "text")
+    private String superAdminList;
+    @Lob
     @Column(columnDefinition="text")
     private String weiboList;
     @Lob
@@ -145,5 +148,14 @@ public class GroupEntity {
 
     public void setInterceptJsonArray(JSONArray jsonArray){
         this.interceptList = jsonArray.toString();
+    }
+
+    public void setSuperAdminJsonArray(JSONArray jsonArray){
+        this.superAdminList = jsonArray.toString();
+    }
+
+    public JSONArray getSuperAdminJsonArray(){
+        if (superAdminList == null) return new JSONArray();
+        else return JSON.parseArray(superAdminList);
     }
 }

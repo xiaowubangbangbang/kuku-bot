@@ -2,6 +2,7 @@ package me.kuku.yuq.controller.manage;
 
 import com.IceCreamQAQ.Yu.annotation.Action;
 import com.IceCreamQAQ.Yu.annotation.Before;
+import com.IceCreamQAQ.Yu.annotation.Config;
 import com.IceCreamQAQ.Yu.annotation.Synonym;
 import com.alibaba.fastjson.JSONObject;
 import com.icecreamqaq.yuq.FunKt;
@@ -31,8 +32,8 @@ public class ManageNotController {
     private RecallService recallService;
     @Inject
     private ToolLogic toolLogic;
-
-    private final String version = "v2.1.1";
+    @Config("YuQ.Mirai.bot.version")
+    private String version;
 
     @Before
     public GroupEntity before(Long group){
@@ -42,7 +43,7 @@ public class ManageNotController {
     }
 
     @Action("查管")
-    @Synonym({"查黑名单", "查白名单", "查违规词", "查拦截", "查微博监控", "查哔哩哔哩监控", "查问答"})
+    @Synonym({"查黑名单", "查白名单", "查违规词", "查拦截", "查微博监控", "查哔哩哔哩监控", "查问答", "查超管"})
     @QMsg(at = true, atNewLine = true)
     public String query(GroupEntity groupEntity, @PathVar(0) String type){
         StringBuilder sb = new StringBuilder();
@@ -51,6 +52,9 @@ public class ManageNotController {
                 sb.append("本群管理员列表如下：").append("\n");
                 groupEntity.getAdminJsonArray().forEach(obj -> sb.append(obj).append("\n"));
                 break;
+            case "查超管":
+                sb.append("本群超级管理员列表如下").append("\n");
+                groupEntity.getSuperAdminJsonArray().forEach(obj -> sb.append(obj).append("\n"));
             case "查黑名单":
                 sb.append("本群黑名单列表如下：").append("\n");
                 groupEntity.getBlackJsonArray().forEach(obj -> sb.append(obj).append("\n"));
