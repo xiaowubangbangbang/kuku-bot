@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 
 @EventListener
+@SuppressWarnings("unused")
 public class MonitorEvent {
     @Config("YuQ.Mirai.user.qq")
     private String qq;

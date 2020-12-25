@@ -12,13 +12,16 @@ import com.icecreamqaq.yuq.annotation.PathVar;
 import com.icecreamqaq.yuq.annotation.QMsg;
 import com.icecreamqaq.yuq.controller.ContextSession;
 import com.icecreamqaq.yuq.entity.Group;
+import com.icecreamqaq.yuq.entity.Member;
 import com.icecreamqaq.yuq.message.Message;
 import com.icecreamqaq.yuq.message.MessageItemFactory;
 import me.kuku.yuq.entity.GroupEntity;
+import me.kuku.yuq.entity.QQEntity;
 import me.kuku.yuq.logic.BiliBiliLogic;
 import me.kuku.yuq.logic.WeiboLogic;
 import me.kuku.yuq.pojo.*;
 import me.kuku.yuq.service.GroupService;
+import me.kuku.yuq.service.QQService;
 import me.kuku.yuq.utils.BotUtils;
 
 import javax.inject.Inject;
@@ -27,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @GroupController
+@SuppressWarnings("unused")
 public class ManageSuperAdminController {
     @Config("YuQ.Mirai.bot.master")
     private String master;
@@ -36,13 +40,13 @@ public class ManageSuperAdminController {
     private WeiboLogic weiboLogic;
     @Inject
     private BiliBiliLogic biliBiliLogic;
+    @Inject
+    private QQService qqService;
 
     @Before
     public GroupEntity before(long group, long qq){
         GroupEntity groupEntity = groupService.findByGroup(group);
-        if (groupEntity == null) groupEntity = new GroupEntity(group);
-        JSONArray superAdminJsonArray = groupEntity.getSuperAdminJsonArray();
-        if (String.valueOf(qq).equals(master) || superAdminJsonArray.contains(String.valueOf(qq))) return groupEntity;
+        if (String.valueOf(qq).equals(master) || groupEntity.isSuperAdmin(qq)) return groupEntity;
         else throw FunKt.getMif().at(qq).plus("您的权限不足，无法执行！！").toThrowable();
     }
 
@@ -130,12 +134,29 @@ public class ManageSuperAdminController {
         return type + "成功！！";
     }
 
+
+    @Action("t {qqNo}")
+    @QMsg(at = true)
+    public String kick(Member qqNo){
+        qqNo.kick("");
+        return "踢出成功！！";
+    }
+
     @Action("违规次数 {count}")
     @QMsg(at = true)
     public String maxViolationCount(GroupEntity groupEntity, int count){
         groupEntity.setMaxViolationCount(count);
         groupService.save(groupEntity);
         return "已设置本群最大违规次数为" + count + "次";
+    }
+
+    @Action("清除违规 {qqNum}")
+    public String clear(GroupEntity groupEntity, long qq){
+        QQEntity qqEntity = qqService.findByQQAndGroup(qq, groupEntity.getGroup());
+        if (qqEntity == null) qqEntity = new QQEntity(qq, groupEntity);
+        qqEntity.setViolationCount(0);
+        qqService.save(qqEntity);
+        return "清除违规成功！！";
     }
 
     @Action("指令限制 {count}")
@@ -160,7 +181,7 @@ public class ManageSuperAdminController {
 
     @Action("加问答 {q}")
     @QMsg(at = true)
-    public String qa(ContextSession session, long qq, GroupEntity groupEntity, String q, Group group){
+    public String qa(ContextSession session, long qq, GroupEntity groupEntity, String q, Group group, @PathVar(2) String type){
         MessageItemFactory mif = FunKt.getMif();
         group.sendMessage(mif.at(qq).plus("请输入回答语句！！"));
         Message a = session.waitNextMessage();
@@ -168,7 +189,10 @@ public class ManageSuperAdminController {
         JSONArray aJsonArray = BotUtils.messageToJsonArray(a);
         jsonObject.put("q", q);
         jsonObject.put("a", aJsonArray);
-        jsonObject.put("type", "PARTIAL");
+        if (type == null) type = "PARTIAL";
+        if (!"ALL".equalsIgnoreCase(type)) type = "PARTIAL";
+        else type = "ALL";
+        jsonObject.put("type", type);
         JSONArray jsonArray = groupEntity.getQaJsonArray();
         jsonArray.add(jsonObject);
         groupEntity.setQaJsonArray(jsonArray);

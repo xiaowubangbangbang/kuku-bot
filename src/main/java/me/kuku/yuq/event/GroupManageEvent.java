@@ -23,9 +23,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @EventListener
+@SuppressWarnings("unused")
 public class GroupManageEvent {
     @Inject
     private GroupService groupService;
@@ -69,7 +69,7 @@ public class GroupManageEvent {
         MessageEntity firstMessage = list.get(0);
         MessageEntity secondMessage = list.get(1);
         if (firstMessage.equals(secondMessage) &&
-                !BotUtils.messageToJsonArray(e.getMessage()).equals(BotUtils.messageToJsonArray(lastRepeatMessageMap.get(groupNum))) &&
+                !BotUtils.equalsMessageJsonArray(BotUtils.messageToJsonArray(e.getMessage()), BotUtils.messageToJsonArray(lastRepeatMessageMap.get(groupNum))) &&
                 !firstMessage.getQq().equals(secondMessage.getQq())){
             lastRepeatMessageMap.put(groupNum, e.getMessage());
             e.getGroup().sendMessage(e.getMessage());

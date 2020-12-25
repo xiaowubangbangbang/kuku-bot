@@ -8,15 +8,11 @@ import com.icecreamqaq.yuq.message.*;
 import com.icecreamqaq.yuq.mirai.MiraiBot;
 import com.icecreamqaq.yuq.mirai.message.ImageReceive;
 import me.kuku.yuq.entity.QQLoginEntity;
-import me.kuku.yuq.pojo.UA;
 import okhttp3.Cookie;
-import okhttp3.Response;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -152,6 +148,25 @@ public class BotUtils {
             }
         }
         return msg;
+    }
+
+    public static boolean equalsMessageJsonArray(JSONArray jsonArray1, JSONArray jsonArray2){
+        if (jsonArray1 == null || jsonArray2 == null) return false;
+        if (jsonArray1.size() != jsonArray2.size()) return false;
+        for (int i = 0; i < jsonArray1.size(); i++){
+            JSONObject jsonObject1 = jsonArray1.getJSONObject(i);
+            JSONObject jsonObject2 = jsonArray2.getJSONObject(i);
+            String type1 = jsonObject1.getString("type");
+            String type2 = jsonObject2.getString("type");
+            if (type1 == null || type2 == null) return false;
+            if (!type1.equals(type2)) return false;
+            if (type1.equals("image")){
+                if (!jsonObject1.getString("id").equals(jsonObject2.getString("id"))) return false;
+            }else {
+                if (!jsonObject1.getString("content").equals(jsonObject2.getString("content"))) return false;
+            }
+        }
+        return true;
     }
 
     public static JSONArray delManager(JSONArray jsonArray, String content){

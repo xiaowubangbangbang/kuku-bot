@@ -1,7 +1,7 @@
 package me.kuku.yuq.controller.manage;
 
 import com.IceCreamQAQ.Yu.annotation.Before;
-import com.IceCreamQAQ.Yu.annotation.Cache;
+import com.IceCreamQAQ.Yu.annotation.Catch;
 import com.IceCreamQAQ.Yu.annotation.Global;
 import com.IceCreamQAQ.Yu.cache.EhcacheHelp;
 import com.IceCreamQAQ.Yu.entity.DoNone;
@@ -10,6 +10,7 @@ import com.icecreamqaq.yuq.annotation.GroupController;
 import com.icecreamqaq.yuq.message.Message;
 import me.kuku.yuq.entity.GroupEntity;
 import me.kuku.yuq.service.GroupService;
+import net.mamoe.mirai.contact.BotIsBeingMutedException;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.util.List;
 
 @GroupController
+@SuppressWarnings("unused")
 public class BeforeController {
     @Inject
     @Named("CommandCountOnTime")
@@ -26,14 +28,14 @@ public class BeforeController {
 
     @Global
     @Before
-    public void before(Message message, Long group, Long qq) {
+    public void before(Message message, Long group, Long qq){
         GroupEntity groupEntity = groupService.findByGroup(group);
         if (groupEntity == null) return;
         Integer maxCount = groupEntity.getMaxCommandCountOnTime();
         if (maxCount == null) maxCount = -1;
         if (maxCount < 0) return;
         List<String> list = message.toPath();
-        if (list.isEmpty()) return;
+        if (list.size() == 0) return;
         String command = list.get(0);
         String key = qq.toString() + command;
         Integer num = eh.get(key);
@@ -43,8 +45,14 @@ public class BeforeController {
     }
 
     @Global
-    @Cache
-    public void interIO(IOException e, long qq) {
+    @Catch(error = IOException.class)
+    public void interIO(IOException e, long qq){
         FunKt.getMif().at(qq).plus("出现io异常了，请重试！！");
+    }
+
+    @Global
+    @Catch(error = BotIsBeingMutedException.class)
+    public void innerMuted(BotIsBeingMutedException e, long qq, long group){
+        FunKt.getYuq().getGroups().get(group).get(qq).sendMessage(Message.Companion.toMessage("机器人被禁言了，不能发送消息啦！！"));
     }
 }

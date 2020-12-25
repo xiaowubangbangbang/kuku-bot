@@ -18,6 +18,7 @@ import javax.inject.Inject;
 import java.io.IOException;
 
 @EventListener
+@SuppressWarnings("unused")
 public class GroupEvent {
     @Inject
     private ToolLogic toolLogic;
