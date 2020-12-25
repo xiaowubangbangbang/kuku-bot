@@ -15,6 +15,7 @@ public class GenShinController {
     @QMsg(at = true)
     public String cardOne(Contact qq, String pool) {
         //根据QQ号查询池子
+
         //根据得到的池子信息抽卡
         //返回信息
 
