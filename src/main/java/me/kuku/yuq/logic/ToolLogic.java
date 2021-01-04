@@ -53,10 +53,11 @@ public interface ToolLogic {
     String traceRoute(String domain) throws IOException;
     String teachYou(String content, String type) throws IOException;
     String preventQQRed(String url) throws IOException;
-    String preventQQWechatRed(String url) throws IOException;
     String songByQQ(String name) throws IOException;
     Result<String> songBy163(String name) throws IOException;
     String genShinUserInfo(long id) throws IOException;
     byte[] cosplay() throws IOException;
     byte[] photo() throws IOException;
+    String uploadImage(byte[] bytes);
+    String abstractWords(String word);
 }
