@@ -10,12 +10,12 @@ import com.icecreamqaq.yuq.annotation.QMsg;
 import com.icecreamqaq.yuq.controller.ContextSession;
 import com.icecreamqaq.yuq.entity.Group;
 import com.icecreamqaq.yuq.job.RainInfo;
-import com.icecreamqaq.yuq.message.Image;
-import com.icecreamqaq.yuq.message.Message;
-import com.icecreamqaq.yuq.message.MessageItemFactory;
-import com.icecreamqaq.yuq.message.XmlEx;
+import com.icecreamqaq.yuq.message.*;
+import me.kuku.yuq.dao.LoLiConDao;
 import me.kuku.yuq.entity.ConfigEntity;
 import me.kuku.yuq.entity.GroupEntity;
+import me.kuku.yuq.entity.LoLiConEntity;
+import me.kuku.yuq.logic.MyApiLogic;
 import me.kuku.yuq.logic.QQAILogic;
 import me.kuku.yuq.logic.ToolLogic;
 import me.kuku.yuq.logic.MyApiLogic;
@@ -26,6 +26,9 @@ import me.kuku.yuq.service.GroupService;
 import me.kuku.yuq.service.MessageService;
 import me.kuku.yuq.utils.BotUtils;
 import me.kuku.yuq.utils.OkHttpUtils;
+import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.contact.Member;
+import net.mamoe.mirai.message.action.Nudge;
 import okhttp3.Response;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
@@ -46,6 +49,8 @@ import java.util.concurrent.TimeUnit;
 @GroupController
 public class ToolController {
     @Inject
+    LoLiConDao loLiConDao;
+    @Inject
     private ToolLogic toolLogic;
     @Inject
     private GroupService groupService;
@@ -64,9 +69,11 @@ public class ToolController {
     @Config("YuQ.Mirai.protocol")
     private String protocol;
 
+    Long recallTime = 0L;
+
     private final LocalDateTime startTime;
 
-    public ToolController(){
+    public ToolController() {
         startTime = LocalDateTime.now();
     }
 
@@ -209,37 +216,68 @@ public class ToolController {
         return toolLogic.searchQuestion(question);
     }
 
+
+    @Action("撤回时间 {recallTime}")
+    @QMsg(at = true)
+    public String setRecallTime(long group, String recallTime) {
+        GroupEntity byGroup = groupService.findByGroup(group);
+        byGroup.setRecallTime(Long.parseLong(recallTime));
+        groupService.save(byGroup);
+        return "撤回时间修改成功";
+    }
+
     @Action("色图")
-    public Message colorPic(long group, long qq) throws IOException {
-        GroupEntity groupEntity = groupService.findByGroup(group);
-        if (groupEntity == null || groupEntity.getColorPic() == null || !groupEntity.getColorPic())
+    @Synonym({"涩图来", "涩图", "来份涩图"})
+    public Message colorPic(Group group, long qq) throws IOException {
+        GroupEntity groupEntity = groupService.findByGroup(group.getId());
+        if (groupEntity == null || groupEntity.getColorPic() == null || Boolean.FALSE.equals(groupEntity.getColorPic()))
             return FunKt.getMif().at(qq).plus("该功能已关闭！！");
         String type = groupEntity.getColorPicType();
-        if ("lolicon".equals(type) || "loliconR18".equals(type)){
-            ConfigEntity configEntity = configService.findByType("loLiCon");
-            if (configEntity == null) return FunKt.getMif().at(qq).plus("您还没有配置lolicon的apiKey，无法获取色图！！");
-            String apiKey = configEntity.getContent();
-            Result<Map<String, String>> result = toolLogic.colorPicByLoLiCon(apiKey, type.equals("loliconR18"));
-            Map<String, String> map = result.getData();
-            if (map == null) return FunKt.getMif().at(qq).plus(result.getMessage());
-            byte[] by = toolLogic.piXivPicProxy(map.get("url"));
-            return FunKt.getMif().imageByInputStream(new ByteArrayInputStream(by)).toMessage();
-        }else if (type.contains("danbooru")){
-            String[] arr = type.split("-");
-            String danType = null;
-            if (arr.length > 1) danType = arr[1];
-            String url;
-            if (danType == null) url = "https://api.kuku.me/danbooru";
-            else url = "https://api.kuku.me/danbooru?type=" + danType;
-            Response response = OkHttpUtils.get(url);
-            if (response.header("content-type") != null){
-                return FunKt.getMif().at(qq).plus("danbooru的tags类型不匹配，请重新设置tags类型，具体tag类型可前往https://danbooru.donmai.us/" +
-                        "查看，如果tag中带空格，请用_替换");
-            }else {
-                byte[] bytes = OkHttpUtils.getBytes(response);
-                return FunKt.getMif().imageByInputStream(new ByteArrayInputStream(bytes)).toMessage();
-            }
-        }else return Message.Companion.toMessage("色图类型不匹配！！");
+        Message message;
+        MessageSource messageSource;
+        switch (type) {
+            case "danbooru":
+                byte[] bytes = OkHttpUtils.getBytes("https://api.kuku.me/danbooru");   //发图
+                message = FunKt.getMif().imageByInputStream(new ByteArrayInputStream(bytes)).toMessage();
+                messageSource = group.sendMessage(message);
+                //撤回
+                new Thread(() -> {
+                    try {
+                        TimeUnit.SECONDS.sleep((groupEntity.getRecallTime() == null ? recallTime : groupEntity.getRecallTime()));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    messageSource.recall();
+                }).start();
+                return null;
+            case "lolicon":
+            case "loliconR18":
+                ConfigEntity configEntity = configService.findByType("loLiCon");
+                if (configEntity == null) return FunKt.getMif().at(qq).plus("您还没有配置lolicon的apiKey，无法获取色图！！");
+                String apiKey = configEntity.getContent();
+                Result<Map<String, String>> result = toolLogic.colorPicByLoLiCon(apiKey, type.equals("loliconR18"));
+                Map<String, String> map = result.getData();
+                message = FunKt.getMif().at(qq).plus(result.getMessage());
+                if (map == null) return message;
+                //保存lolicon涩图
+                loLiConDao.save(LoLiConEntity.builder().title(map.get("title")).pid(map.get("pid")).uid(map.get("uid")).url(map.get("url")).type(type).build());
+                byte[] by = toolLogic.piXivPicProxy(map.get("url"));
+                //发图
+                message = FunKt.getMif().imageByInputStream(new ByteArrayInputStream(by)).toMessage();
+                messageSource = group.sendMessage(message);
+                //撤回
+                new Thread(() -> {
+                    try {
+                        TimeUnit.SECONDS.sleep((groupEntity.getRecallTime() == null ? recallTime : groupEntity.getRecallTime()));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    messageSource.recall();
+                }).start();
+                return null;
+            default:
+                return Message.Companion.toMessage("色图类型不匹配！！");
+        }
     }
 
     @Action("qr/{content}")
@@ -250,8 +288,19 @@ public class ToolController {
     }
 
     @Action("看美女")
-    public Image girl() throws IOException {
-        return FunKt.getMif().imageByUrl(toolLogic.girlImage());
+    public Image girl(Group group, long qq) throws IOException {
+        GroupEntity groupEntity = groupService.findByGroup(group.getId());
+        Message message = FunKt.getMif().imageByUrl(toolLogic.girlImage()).toMessage();
+        MessageSource sendMessage = group.sendMessage(message);
+        new Thread(() -> {
+            try {
+                TimeUnit.SECONDS.sleep((groupEntity.getRecallTime() == null ? recallTime : groupEntity.getRecallTime()));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            sendMessage.recall();
+        }).start();
+        return null;
     }
 
     @QMsg(at = true)
@@ -384,10 +433,23 @@ public class ToolController {
     @QMsg(at = true)
     @Action("防红 {url}")
     public String preventRed(String url) throws IOException {
-        boolean b = new Random().nextBoolean();
-        if (b) return toolLogic.preventQQRed(url);
-        else return toolLogic.preventQQWechatRed(url);
+        return toolLogic.preventQQRed(url);
     }
+
+//    @Action("戳 {qqNo}")
+//    @QMsg(at = true)
+//    public String stamp(long qqNo, long group) {
+//        if (!"Android".equals(protocol)) return "戳一戳必须使用Android才能使用！！";
+//        Bot bot = Bot.getInstance(FunKt.getYuq().getBotId());
+//        net.mamoe.mirai.contact.Group groupObj = bot.getGroup(group);
+//        Member member;
+//        if (qqNo == bot.getId()) member = groupObj.getBotAsMember();
+//        else member = groupObj.getMembers().get(qqNo);
+//        boolean b = Nudge.Companion.sendNudge(groupObj, member.nudge());
+//        if (b) return "戳成功！！";
+//        else return "戳失败，对方已关闭戳一戳！！";
+//    }
+
 
     @Action("点歌 {name}")
     public Object musicFromQQ(String name) throws IOException {
@@ -403,7 +465,7 @@ public class ToolController {
 
     @Action("统计")
     @Synonym({"运行状态"})
-    public String status(){
+    public String status() {
         SystemInfo systemInfo = new SystemInfo();
         CentralProcessor processor = systemInfo.getHardware().getProcessor();
         long[] prevTicks = processor.getSystemCpuLoadTicks();
@@ -522,7 +584,6 @@ public class ToolController {
     public Image photo() throws IOException {
         return FunKt.getMif().imageByByteArray(toolLogic.photo());
     }
-
 
     @Action("kuku上传 {image}")
     @QMsg(at = true)
