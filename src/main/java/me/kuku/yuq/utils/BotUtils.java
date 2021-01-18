@@ -10,6 +10,24 @@ import com.icecreamqaq.yuq.FunKt;
 import com.icecreamqaq.yuq.message.*;
 import com.icecreamqaq.yuq.mirai.MiraiBot;
 import com.icecreamqaq.yuq.mirai.message.ImageReceive;
+import me.kuku.yuq.controller.*;
+import me.kuku.yuq.controller.bilibili.BiliBiliController;
+import me.kuku.yuq.controller.bilibili.BiliBiliLoginController;
+import me.kuku.yuq.controller.hostloc.HostLocController;
+import me.kuku.yuq.controller.hostloc.HostLocLoginController;
+import me.kuku.yuq.controller.manage.ManageAdminController;
+import me.kuku.yuq.controller.manage.ManageNotController;
+import me.kuku.yuq.controller.manage.ManageOwnerController;
+import me.kuku.yuq.controller.manage.ManageSuperAdminController;
+import me.kuku.yuq.controller.motion.BindStepController;
+import me.kuku.yuq.controller.motion.MotionController;
+import me.kuku.yuq.controller.netease.BindNeTeaseController;
+import me.kuku.yuq.controller.netease.NeTeaseController;
+import me.kuku.yuq.controller.qqlogin.BindQQController;
+import me.kuku.yuq.controller.qqlogin.QQJobController;
+import me.kuku.yuq.controller.qqlogin.QQLoginController;
+import me.kuku.yuq.controller.qqlogin.QQQuickLoginController;
+import me.kuku.yuq.controller.warframe.WarframeController;
 import me.kuku.yuq.entity.QQLoginEntity;
 import me.kuku.yuq.pojo.UA;
 import okhttp3.Cookie;
@@ -27,13 +45,10 @@ public class BotUtils {
 
     public static String shortUrl(String url){
         try {
-            String b64Url = Base64.getEncoder().encodeToString(url.getBytes(StandardCharsets.UTF_8));
-            JSONObject jsonObject = OkHttpUtils.getJson("https://www.fanghong.net/cbfh.php?cb=4&sturl=3&longurl=" +
-                    URLEncoder.encode(b64Url, "utf-8"),
+            Map<String, String> map = new HashMap<>();
+            map.put("url", url);
+            return OkHttpUtils.postStr("https://api.kuku.me/tool/short", map,
                     OkHttpUtils.addUA(UA.PC));
-            if (jsonObject.getInteger("result") == 1){
-                return jsonObject.getString("dwz_url");
-            }else return jsonObject.getString("msg");
         } catch (IOException e) {
             e.printStackTrace();
             return "缩短失败，原链接：" + url;
@@ -79,15 +94,19 @@ public class BotUtils {
     }
 
     public static QQLoginEntity toQQLoginEntity(OkHttpWebImpl web, MiraiBot miraiBot){
-        ConcurrentHashMap<String, Map<String, Cookie>> map = web.getDomainMap();
-        Map<String, Cookie> qunMap = map.get("qun.qq.com");
-        String groupPsKey = qunMap.get("p_skey").value();
-        Map<String, Cookie> qqMap = map.get("qq.com");
-        String sKey = qqMap.get("skey").value();
-        Map<String, Cookie> qZoneMap = map.get("qzone.qq.com");
-        String psKey = qZoneMap.get("p_skey").value();
-        return new QQLoginEntity(null, FunKt.getYuq().getBotId(), 0L, "", sKey, psKey, groupPsKey, miraiBot.superKey,
-                QQUtils.getToken(miraiBot.superKey).toString(), null, true);
+        try {
+            ConcurrentHashMap<String, Map<String, Cookie>> map = web.getDomainMap();
+            Map<String, Cookie> qunMap = map.get("qun.qq.com");
+            String groupPsKey = qunMap.get("p_skey").value();
+            Map<String, Cookie> qqMap = map.get("qq.com");
+            String sKey = qqMap.get("skey").value();
+            Map<String, Cookie> qZoneMap = map.get("qzone.qq.com");
+            String psKey = qZoneMap.get("p_skey").value();
+            return new QQLoginEntity(null, FunKt.getYuq().getBotId(), 0L, "", sKey, psKey, groupPsKey, miraiBot.superKey,
+                    QQUtils.getToken(miraiBot.superKey).toString(), null, true);
+        }catch (Exception e){
+            return new QQLoginEntity();
+        }
     }
 
     public static JSONArray messageToJsonArray(Message rm){
@@ -122,6 +141,10 @@ public class BotUtils {
                 JsonEx jsonEx = (JsonEx) messageItem;
                 aJsonObject.put("type", "at");
                 aJsonObject.put("content", jsonEx.getValue());
+            }else if (messageItem instanceof Voice){
+                Voice voice = (Voice) messageItem;
+                aJsonObject.put("type", "voice");
+                aJsonObject.put("content", voice.getUrl());
             }else continue;
             aJsonArray.add(aJsonObject);
         }
@@ -151,6 +174,13 @@ public class BotUtils {
                     break;
                 case "json":
                     msg.plus(mif.jsonEx(aJsonObject.getString("content")));
+                    break;
+                case "voice":
+                    try {
+                        msg.plus(mif.voiceByByteArray(OkHttpUtils.getBytes(aJsonObject.getString("content"))));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     break;
             }
         }
@@ -228,6 +258,22 @@ public class BotUtils {
                     }
                 }
             }
+        }
+        return list;
+    }
+
+    public static List<String> allCommand(){
+        List<String> list = menu(BiliBiliController.class, BiliBiliLoginController.class, HostLocController.class, HostLocLoginController.class,
+                ManageAdminController.class, ManageNotController.class, ManageOwnerController.class, ManageSuperAdminController.class,
+                BindStepController.class, MotionController.class, BindNeTeaseController.class, NeTeaseController.class,
+                BindQQController.class, QQJobController.class, QQLoginController.class, QQQuickLoginController.class,
+                WarframeController.class, ArkNightsController.class, BotController.class, MenuController.class,
+                MyQQController.class, QQBindController.class, SettingController.class, ToolController.class, ToolController.class);
+        for (int i = 0; i < list.size(); i++){
+            String str = list.get(i);
+            String command = str.split(" ")[0];
+            if (command.contains("/")) command = str.split("/")[0];
+            list.set(i, command);
         }
         return list;
     }

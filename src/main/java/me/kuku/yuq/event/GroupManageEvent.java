@@ -6,7 +6,7 @@ import com.IceCreamQAQ.Yu.cache.EhcacheHelp;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.icecreamqaq.yuq.FunKt;
-import com.icecreamqaq.yuq.event.GroupMessageEvent;
+import com.icecreamqaq.yuq.event.*;
 import com.icecreamqaq.yuq.message.*;
 import me.kuku.yuq.entity.GroupEntity;
 import me.kuku.yuq.entity.QQEntity;
@@ -43,15 +43,30 @@ public class GroupManageEvent {
     private final Map<Long, JSONArray> lastRepeatMessage = new ConcurrentHashMap<>();
 
     @Event(weight = Event.Weight.high)
-    public void status(GroupMessageEvent e){
-        GroupEntity groupEntity = groupService.findByGroup(e.getGroup().getId());
+    public void status(com.IceCreamQAQ.Yu.event.events.Event e){
+        Long group = null;
+        Message message = null;
+        if (e instanceof GroupMemberEvent){
+            group = ((GroupMemberEvent) e).getGroup().getId();
+        }else if (e instanceof GroupMemberRequestEvent){
+            group = ((GroupMemberRequestEvent) e).getGroup().getId();
+        }else if (e instanceof GroupRecallEvent){
+            group = ((GroupRecallEvent) e).getGroup().getId();
+        }else if (e instanceof GroupMessageEvent){
+            GroupMessageEvent groupMessageEvent = (GroupMessageEvent) e;
+            group = groupMessageEvent.getGroup().getId();
+            message = groupMessageEvent.getMessage();
+        }
+        if (group == null) return;
+        GroupEntity groupEntity = groupService.findByGroup(group);
         boolean status = true;
-        Message message = e.getMessage();
-        List<String> list = message.toPath();
-        if (list.size() == 2) {
-            String pa = list.get(1);
-            if ("kukubot".equals(list.get(0)) && pa.equals("开") || pa.equals("关")) {
-                status = false;
+        if (message != null) {
+            List<String> list = message.toPath();
+            if (list.size() == 2) {
+                String pa = list.get(1);
+                if ("kukubot".equals(list.get(0)) && pa.equals("开") || pa.equals("关")) {
+                    status = false;
+                }
             }
         }
         if (groupEntity != null && groupEntity.getStatus()){
@@ -202,7 +217,7 @@ public class GroupManageEvent {
                 Integer maxCount = groupEntity.getMaxCommandCountOnTime();
                 if (maxCount == null) maxCount = -1;
                 if (maxCount > 0){
-                    String key = e.getSender().getId() + q;
+                    String key = "qq" + e.getSender().getId() + q;
                     Integer num = eh.get(key);
                     if (num == null) num = 0;
                     if (num >= maxCount) return;
