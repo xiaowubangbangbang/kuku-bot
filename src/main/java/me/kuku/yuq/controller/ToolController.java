@@ -3,6 +3,8 @@ package me.kuku.yuq.controller;
 import com.IceCreamQAQ.Yu.annotation.Action;
 import com.IceCreamQAQ.Yu.annotation.Config;
 import com.IceCreamQAQ.Yu.annotation.Synonym;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.icecreamqaq.yuq.FunKt;
 import com.icecreamqaq.yuq.annotation.GroupController;
 import com.icecreamqaq.yuq.annotation.PathVar;
@@ -43,6 +45,8 @@ import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unused")
@@ -72,6 +76,7 @@ public class ToolController {
     Long recallTime = 0L;
 
     private final LocalDateTime startTime;
+    private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(4);
 
     public ToolController() {
         startTime = LocalDateTime.now();
@@ -600,5 +605,33 @@ public class ToolController {
     @QMsg(at = true)
     public String abstractWords(String word){
         return "抽象话如下：\n" + toolLogic.abstractWords(word);
+    }
+
+    @Action("窥屏检测")
+    public void checkPeeping(Group group){
+        String random = BotUtils.randomNum(4);
+        group.sendMessage(FunKt.getMif().jsonEx("{\"app\":\"com.tencent.miniapp\",\"desc\":\"\",\"view\":\"notification\",\"ver\":\"1.0.0.11\",\"prompt\":\"QQ程序\",\"appID\":\"\",\"sourceName\":\"\",\"actionData\":\"\",\"actionData_A\":\"\",\"sourceUrl\":\"\",\"meta\":{\"notification\":{\"appInfo\":{\"appName\":\"三楼有只猫\",\"appType\":4,\"appid\":1109659848,\"iconUrl\":\"https:\\/\\/api.kuku.me\\/tool\\/peeping\\/check\\/" + random + "\"},\"button\":[],\"data\":[],\"emphasis_keyword\":\"\",\"title\":\"请等待15s\"}},\"text\":\"\",\"extraApps\":[],\"sourceAd\":\"\",\"extra\":\"\"}").toMessage());
+        executorService.schedule(() -> {
+            String msg;
+            try {
+                JSONObject jsonObject = OkHttpUtils.getJson("https://api.kuku.me/tool/peeping/result/" + random);
+                if (jsonObject.getInteger("code") == 200){
+                    StringBuilder sb = new StringBuilder();
+                    JSONArray jsonArray = jsonObject.getJSONObject("data").getJSONArray("list");
+                    sb.append("检测到共有").append(jsonArray.size()).append("位小伙伴在窥屏").append("\n");
+                    for (int i = 0; i < jsonArray.size(); i++){
+                        JSONObject singleJsonObject = jsonArray.getJSONObject(i);
+                        sb.append(singleJsonObject.getString("ip"))
+                                .append("-").append(singleJsonObject.getString("address"))
+                                /*.append("-").append(singleJsonObject.getString("simpleUserAgent"))*/.append("\n");
+                    }
+                    msg = BotUtils.removeLastLine(sb);
+                }else msg = jsonObject.getString("message");
+            } catch (IOException e) {
+                e.printStackTrace();
+                msg = "查询失败，请重试！！";
+            }
+            group.sendMessage(FunKt.getMif().text(msg).toMessage());
+        }, 15, TimeUnit.SECONDS);
     }
 }
