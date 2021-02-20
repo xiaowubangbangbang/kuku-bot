@@ -6,11 +6,13 @@ import com.IceCreamQAQ.Yu.annotation.Config;
 import com.IceCreamQAQ.Yu.annotation.Synonym;
 import com.IceCreamQAQ.Yu.util.OkHttpWebImpl;
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.icecreamqaq.yuq.FunKt;
 import com.icecreamqaq.yuq.annotation.PathVar;
 import com.icecreamqaq.yuq.annotation.PrivateController;
 import com.icecreamqaq.yuq.controller.BotActionContext;
 import com.icecreamqaq.yuq.controller.ContextSession;
+import com.icecreamqaq.yuq.controller.QQController;
 import com.icecreamqaq.yuq.entity.Contact;
 import com.icecreamqaq.yuq.entity.Group;
 import com.icecreamqaq.yuq.message.Message;
@@ -18,20 +20,28 @@ import com.icecreamqaq.yuq.mirai.MiraiBot;
 import me.kuku.yuq.entity.ConfigEntity;
 import me.kuku.yuq.entity.GroupEntity;
 import me.kuku.yuq.entity.QQLoginEntity;
+import me.kuku.yuq.logic.DCloudLogic;
 import me.kuku.yuq.logic.QQLoginLogic;
+import me.kuku.yuq.logic.TeambitionLogic;
+import me.kuku.yuq.pojo.ConfigType;
+import me.kuku.yuq.pojo.DCloudPojo;
+import me.kuku.yuq.pojo.Result;
+import me.kuku.yuq.pojo.TeambitionPojo;
 import me.kuku.yuq.service.ConfigService;
 import me.kuku.yuq.service.GroupService;
 import me.kuku.yuq.utils.BotUtils;
+import me.kuku.yuq.utils.OkHttpUtils;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 @PrivateController
 @SuppressWarnings("unused")
-public class SettingController {
+public class SettingController extends QQController {
     @Inject
     private GroupService groupService;
     @Config("YuQ.Mirai.bot.master")
@@ -44,6 +54,10 @@ public class SettingController {
     private MiraiBot miraiBot;
     @Inject
     private ConfigService configService;
+    @Inject
+    private TeambitionLogic teambitionLogic;
+    @Inject
+    private DCloudLogic dCloudLogic;
 
     @Before
     public void before(long qq, BotActionContext actionContext){
@@ -108,6 +122,54 @@ public class SettingController {
         return "绑定qqAI的信息成功！！";
     }
 
+    @Action("baiduai ocr")
+    @Synonym({"baiduai contentCensor", "baiduai speech"})
+    public String settingBaiduAI(ContextSession session, Contact qq, @PathVar(1) String type){
+        qq.sendMessage(BotUtils.toMessage("请输入appId"));
+        Message firstMessage = session.waitNextMessage();
+        String appId = BotUtils.firstString(firstMessage);
+        qq.sendMessage(BotUtils.toMessage("请输入appKey"));
+        Message secondMessage = session.waitNextMessage();
+        String appKey = BotUtils.firstString(secondMessage);
+        qq.sendMessage(BotUtils.toMessage("请输入secretKey"));
+        Message thirdMessage = session.waitNextMessage();
+        String secretKey = BotUtils.firstString(thirdMessage);
+        String appIdType;
+        String appKeyType;
+        String secretKeyType;
+        switch (type){
+            case "ocr":
+                appIdType = "baiduAIOcrAppId";
+                appKeyType = "baiduAIOcrAppKey";
+                secretKeyType = "baiduAIOcrSecretKey";
+                break;
+            case "contentCensor":
+                appIdType = "baiduAIContentCensorAppId";
+                appKeyType = "baiduAIContentCensorAppKey";
+                secretKeyType = "baiduAIContentCensorSecretKey";
+                break;
+            case "speech":
+                appIdType = "baiduAISpeechAppId";
+                appKeyType = "baiduAISpeechAppKey";
+                secretKeyType = "baiduAISpeechSecretKey";
+                break;
+            default: return null;
+        }
+        ConfigEntity appIdConfigEntity = configService.findByType(appIdType);
+        if (appIdConfigEntity == null) appIdConfigEntity = new ConfigEntity(appIdType);
+        ConfigEntity appKeyConfigEntity = configService.findByType(appKeyType);
+        if (appKeyConfigEntity == null) appKeyConfigEntity = new ConfigEntity(appKeyType);
+        ConfigEntity secretKeyConfigEntity = configService.findByType(secretKeyType);
+        if (secretKeyConfigEntity == null) secretKeyConfigEntity = new ConfigEntity(secretKeyType);
+        appIdConfigEntity.setContent(appId);
+        appKeyConfigEntity.setContent(appKey);
+        secretKeyConfigEntity.setContent(secretKey);
+        configService.save(appIdConfigEntity);
+        configService.save(appKeyConfigEntity);
+        configService.save(secretKeyConfigEntity);
+        return "绑定百度AI的信息成功！！";
+    }
+
     @Action("lolicon {apiKey}")
     public String settingLoLiCon(String apiKey){
         ConfigEntity configEntity = configService.findByType("loLiCon");
@@ -134,6 +196,90 @@ public class SettingController {
             groupService.save(groupEntity);
             return String.format("添加{%s}群的{%s}为超管成功！！", groupNum, qqNum);
         }else return "机器人并没有加入这个群！！";
+    }
+
+    @Action("teambition {phone} {password}")
+    public String addTeam(String phone, String password, ContextSession session) throws IOException {
+        reply("请输入需要绑定的项目名称");
+        Message projectMessage = session.waitNextMessage();
+        String project = BotUtils.firstString(projectMessage);
+        reply("请输入api中添加的名称");
+        Message nameMessage = session.waitNextMessage();
+        String name = BotUtils.firstString(nameMessage);
+        Result<TeambitionPojo> loginResult = teambitionLogic.login(phone, password);
+        if (loginResult.isFailure()){
+            return loginResult.getMessage();
+        }
+        TeambitionPojo teambitionPojo = loginResult.getData();
+        Result<TeambitionPojo> projectResult = teambitionLogic.project(teambitionPojo, project);
+        if (projectResult.isFailure()) return projectResult.getMessage();
+        teambitionPojo = projectResult.getData();
+        ConfigEntity configEntity = configService.findByType(ConfigType.Teambition.getType());
+        if (configEntity == null) configEntity = new ConfigEntity(ConfigType.Teambition.getType());
+        JSONObject jsonObject = configEntity.getContentJsonObject();
+        jsonObject.put("phone", phone);
+        jsonObject.put("password", password);
+        jsonObject.put("cookie", teambitionPojo.getCookie());
+        jsonObject.put("auth", teambitionPojo.getStrikerAuth());
+        jsonObject.put("project", project);
+        jsonObject.put("projectId", teambitionPojo.getProjectId());
+        jsonObject.put("rootId", teambitionPojo.getRootId());
+        jsonObject.put("name", name);
+        configEntity.setContentJsonObject(jsonObject);
+        configService.save(configEntity);
+        return "绑定Teambition成功！！";
+    }
+
+    @Action("teambitionapi {phone} {password}")
+    public String addTeamApi(String phone, String password, ContextSession session) throws IOException {
+        reply("请输入需要绑定的项目名称");
+        Message projectMessage = session.waitNextMessage();
+        String project = BotUtils.firstString(projectMessage);
+        reply("请输入需要设置的名称（将会在api链接中显示）");
+        Message nameMessage = session.waitNextMessage();
+        String name = BotUtils.firstString(nameMessage);
+        Map<String, String> map = new HashMap<>();
+        map.put("name", name);
+        map.put("phone", phone);
+        map.put("password", password);
+        map.put("project", project);
+        JSONObject jsonObject = OkHttpUtils.postJson("https://api.kuku.me/teambition", map);
+        if (jsonObject.getInteger("code") == 200){
+            return "绑定成功！！";
+        }else return "绑定失败！！" + jsonObject.getString("message");
+    }
+
+    @Action("teambitionapidel {name} {password}")
+    public String delTeamApi(String name, String password) throws IOException {
+        Map<String, String> map = new HashMap<>();
+        map.put("name", name);
+        map.put("password", password);
+        JSONObject jsonObject = OkHttpUtils.deleteJson("https://api.kuku.me/teambition", map);
+        return jsonObject.getString("data");
+    }
+
+    @Action("dcloud {email} {password}")
+    public String addDCloud(String email, String password, ContextSession session) throws IOException {
+        reply("请输入服务空间的spaceId！！");
+        Message idMessage = session.waitNextMessage();
+        String spaceId = BotUtils.firstString(idMessage);
+        DCloudPojo dCloudPojo = dCloudLogic.getData();
+        reply(FunKt.getMif().imageByByteArray(dCloudPojo.getCaptchaImage()).plus("请输入图片验证码！！"));
+        Message codeMessage = session.waitNextMessage();
+        String code = BotUtils.firstString(codeMessage);
+        Result<DCloudPojo> loginResult = dCloudLogic.login(dCloudPojo, email, password, code);
+        if (loginResult.isFailure()) return loginResult.getMessage();
+        dCloudPojo = loginResult.getData();
+        ConfigEntity configEntity = configService.findByType("dCloud");
+        if (configEntity == null) configEntity = new ConfigEntity("dCloud");
+        JSONObject jsonObject = new JSONObject();
+        // 有验证码，自动更新不了cookie
+        jsonObject.put("cookie", dCloudPojo.getCookie());
+        jsonObject.put("token", dCloudPojo.getToken());
+        jsonObject.put("spaceId", spaceId);
+        configEntity.setContentJsonObject(jsonObject);
+        configService.save(configEntity);
+        return "绑定dCloud成功！！";
     }
 
 }

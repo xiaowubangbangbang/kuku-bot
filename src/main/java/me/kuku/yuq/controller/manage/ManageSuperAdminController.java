@@ -17,12 +17,13 @@ import com.icecreamqaq.yuq.message.Message;
 import com.icecreamqaq.yuq.message.MessageItemFactory;
 import me.kuku.yuq.entity.GroupEntity;
 import me.kuku.yuq.entity.QQEntity;
-import me.kuku.yuq.logic.BiliBiliLogic;
-import me.kuku.yuq.logic.WeiboLogic;
+import me.kuku.yuq.entity.QQLoginEntity;
+import me.kuku.yuq.logic.*;
 import me.kuku.yuq.pojo.*;
 import me.kuku.yuq.service.GroupService;
 import me.kuku.yuq.service.QQService;
 import me.kuku.yuq.utils.BotUtils;
+import net.mamoe.mirai.contact.PermissionDeniedException;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -42,6 +43,12 @@ public class ManageSuperAdminController {
     private BiliBiliLogic biliBiliLogic;
     @Inject
     private QQService qqService;
+    @Inject
+    private BotLogic botLogic;
+    @Inject
+    private QQLoginLogic qqLoginLogic;
+    @Inject
+    private QQGroupLogic qqGroupLogic;
 
     @Before
     public GroupEntity before(long group, Member qq){
@@ -134,12 +141,23 @@ public class ManageSuperAdminController {
         return type + "成功！！";
     }
 
+    @Action("全体禁言 {status}")
+    public String allShutUp(long group, boolean status) throws IOException {
+        QQLoginEntity qqLoginEntity = botLogic.getQQLoginEntity();
+        return qqLoginLogic.allShutUp(qqLoginEntity, group, status);
+    }
 
     @Action("t {qqNo}")
     @QMsg(at = true)
     public String kick(Member qqNo){
-        qqNo.kick("");
-        return "踢出成功！！";
+        try {
+            qqNo.kick("");
+            return "踢出成功！！";
+        } catch (PermissionDeniedException e) {
+            return "权限不足，踢出失败！！";
+        } catch (Exception e){
+            return qqGroupLogic.deleteGroupMember(qqNo.getId(), qqNo.getGroup().getId(), true);
+        }
     }
 
     @Action("违规次数 {count}")

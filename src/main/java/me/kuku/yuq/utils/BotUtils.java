@@ -35,23 +35,25 @@ import okhttp3.Cookie;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("UnusedReturnValue")
 public class BotUtils {
 
     public static String shortUrl(String url){
+        // http://www.uc4.cn/
         try {
-            Map<String, String> map = new HashMap<>();
-            map.put("url", url);
-            return OkHttpUtils.postStr("https://api.kuku.me/tool/short", map,
-                    OkHttpUtils.addUA(UA.PC));
+            if (!url.startsWith("http") && !url.startsWith("https")) url = "http://" + url;
+            JSONObject jsonObject = OkHttpUtils.getJson("http://uc4.cn/ajax.php?act=creat1&url=" +
+                    URLEncoder.encode(url, "utf-8") + "&pattern=1&type=a6bcn&id=", OkHttpUtils.addUA(UA.PC));
+            if (jsonObject.getInteger("code") == 0){
+                return jsonObject.getString("dwz");
+            }else return url;
         } catch (IOException e) {
-            e.printStackTrace();
-            return "缩短失败，原链接：" + url;
+            return url;
         }
     }
 
@@ -279,7 +281,16 @@ public class BotUtils {
     }
 
     public static String removeLastLine(StringBuilder sb){
-        return sb.deleteCharAt(sb.length() - 1).toString();
+        if ("\n".equals(sb.substring(sb.length() - 1, sb.length()))) return sb.deleteCharAt(sb.length() - 1).toString();
+        else return sb.toString();
+    }
+
+    public static Message toMessage(String str){
+        return Message.Companion.toMessage(str);
+    }
+
+    public static String firstString(Message message){
+        return Message.Companion.firstString(message);
     }
 
 }

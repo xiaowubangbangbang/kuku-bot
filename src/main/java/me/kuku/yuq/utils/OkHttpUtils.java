@@ -72,12 +72,12 @@ public class OkHttpUtils {
         return post(url, new HashMap<>(), emptyHeaders());
     }
 
-    private static Response put(String url, RequestBody requestBody, Headers headers) throws IOException {
+    public static Response put(String url, RequestBody requestBody, Headers headers) throws IOException {
         Request request = new Request.Builder().url(url).put(requestBody).headers(headers).build();
         return okHttpClient.newCall(request).execute();
     }
 
-    private static Response put(String url, RequestBody requestBody) throws IOException {
+    public static Response put(String url, RequestBody requestBody) throws IOException {
         return put(url, requestBody, emptyHeaders());
     }
 
@@ -88,6 +88,14 @@ public class OkHttpUtils {
 
     private static Response delete(String url, RequestBody requestBody) throws IOException {
         return delete(url, requestBody, emptyHeaders());
+    }
+
+    public static Response delete(String url, Map<String, String> map, Headers headers) throws IOException {
+        return delete(url, mapToFormBody(map), headers);
+    }
+
+    public static Response delete(String url, Map<String, String> map) throws IOException {
+        return delete(url, map, emptyHeaders());
     }
 
     public static String getStr(Response response) throws IOException {
@@ -190,6 +198,15 @@ public class OkHttpUtils {
         return postStr(url, map, emptyHeaders());
     }
 
+    public static String deleteStr(String url, Map<String, String> map, Headers headers) throws IOException {
+        Response response = delete(url, mapToFormBody(map), headers);
+        return getStr(response);
+    }
+
+    public static String deleteStr(String url, Map<String, String> map) throws IOException {
+        return deleteStr(url, map, emptyHeaders());
+    }
+
     public static JSONObject postJson(String url, Map<String, String> map, Headers headers) throws IOException {
         String str = postStr(url, map, headers);
         return JSON.parseObject(str);
@@ -197,6 +214,16 @@ public class OkHttpUtils {
 
     public static JSONObject postJson(String url, Map<String, String> map) throws IOException {
         String str = postStr(url, map, emptyHeaders());
+        return JSON.parseObject(str);
+    }
+
+    public static JSONObject deleteJson(String url, Map<String, String> map, Headers headers) throws IOException {
+        String str = deleteStr(url, map, headers);
+        return JSON.parseObject(str);
+    }
+
+    public static JSONObject deleteJson(String url, Map<String, String> map) throws IOException {
+        String str = deleteStr(url, map, emptyHeaders());
         return JSON.parseObject(str);
     }
 

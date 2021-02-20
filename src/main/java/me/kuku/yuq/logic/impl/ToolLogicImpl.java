@@ -4,17 +4,15 @@ import com.IceCreamQAQ.Yu.util.IO;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import lombok.val;
 import me.kuku.yuq.logic.ToolLogic;
+import me.kuku.yuq.pojo.CodeType;
 import me.kuku.yuq.pojo.Result;
 import me.kuku.yuq.pojo.UA;
 import me.kuku.yuq.utils.BotUtils;
+import me.kuku.yuq.utils.DateTimeFormatterUtils;
 import me.kuku.yuq.utils.MD5Utils;
 import me.kuku.yuq.utils.OkHttpUtils;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -24,11 +22,11 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 @SuppressWarnings({"unused", "FieldCanBeLocal"})
@@ -312,7 +310,7 @@ public class ToolLogicImpl implements ToolLogic {
             }
             String xmlStr = String.format("<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><msg serviceID=\"146\" templateID=\"1\" action=\"web\" brief=\"[分享] %s %s\" sourcePublicUin=\"2658655094\" sourceMsgId=\"0\" url=\"https://weather.mp.qq.com/pages/aio?_wv=1090533159&amp;_wwv=196612&amp;scene=1&amp;adcode=%s&amp;timeStamp=%s\" flag=\"0\" adverSign=\"0\" multiMsgFlag=\"0\"><item layout=\"2\" advertiser_id=\"0\" aid=\"0\"><picture cover=\"https://imgcache.qq.com/ac/qqweather/image/share_icon/%s.png\" w=\"0\" h=\"0\" /><title>%s %s</title><summary>%s\n" +
                     "空气质量:%s</summary></item><source name=\"QQ天气\" icon=\"https://url.cn/JS8oE7\" action=\"plugin\" a_actionData=\"mqqapi://app/action?pkg=com.tencent.mobileqq&amp;cmp=com.tencent.biz.pubaccount.AccountDetailActivity&amp;uin=2658655094\" i_actionData=\"mqqapi://card/show_pslcard?src_type=internal&amp;card_type=public_account&amp;uin=2658655094&amp;version=1\" appid=\"-1\" /></msg>",
-                    city, weather, code, new Date().getTime(), wPic, city, weather, temperature, air);
+                    city, weather, code, System.currentTimeMillis(), wPic, city, weather, temperature, air);
             return Result.success(xmlStr);
         }else return Result.failure("没有找到这个城市", null);
     }
@@ -343,7 +341,7 @@ public class ToolLogicImpl implements ToolLogic {
             String ipInfo = queryIp(ip);
             return "====查询结果====\n" + "域名/IP：" + domain + "\n" +
                     "IP：" + ip + "\n" +
-                    "延迟：" + time + "msg" + "\n" +
+                    "延迟：" + time + "ms" + "\n" +
                     "位置：" + ipInfo;
         }else return "ping失败，请稍后再试！！";
     }
@@ -352,7 +350,8 @@ public class ToolLogicImpl implements ToolLogic {
     public Result<Map<String, String>> colorPicByLoLiCon(String apiKey, boolean isR18) throws IOException {
         int r18 = 0;
         if (isR18) r18 = 1;
-        JSONObject jsonObject = OkHttpUtils.getJson("https://api.lolicon.app/setu/?apikey=" + apiKey + "&r18=" + r18);
+//        JSONObject jsonObject = OkHttpUtils.getJson("https://api.lolicon.app/setu/?apikey=" + apiKey + "&r18=" + r18);
+        JSONObject jsonObject = OkHttpUtils.getJson("https://api.kuku.me/lolicon/?apikey=" + apiKey + "&r18=" + r18);
         switch (jsonObject.getInteger("code")){
             case 0:
                 JSONObject dataJsonObject = jsonObject.getJSONArray("data").getJSONObject(0);
@@ -427,8 +426,14 @@ public class ToolLogicImpl implements ToolLogic {
 
     @Override
     public byte[] queryTime() throws IOException {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH-mm");
-        return OkHttpUtils.downloadBytes("https://share.kuku.me/189/images/time/" + sdf.format(new Date()) + ".jpg");
+        String name = DateTimeFormatterUtils.formatNow("HH-mm") + ".jpg";
+        String hour = name.split("-")[0];
+        File file = new File("time" + File.separator + hour + File.separator + name);
+        if (file.exists()){
+            return IO.read(new FileInputStream(file), true);
+        }else {
+            return OkHttpUtils.downloadBytes("https://file.kuku.me/time/time/" + hour + "/" + name);
+        }
     }
 
     @Override
@@ -468,11 +473,6 @@ public class ToolLogicImpl implements ToolLogic {
             return Result.success(map);
         }else if (code == -404) return Result.failure("没有找到该BV号！！", null);
         else return Result.failure(jsonObject.getString("message"), null);
-    }
-
-    @Override
-    public List<Map<String, String>> zhiHuHot() {
-        return null;
     }
 
     @Override
@@ -568,19 +568,19 @@ public class ToolLogicImpl implements ToolLogic {
         switch (type){
             case "baidu":
                 msg = "百度";
-                url = "https://u.iheit.com/teachsearch/baidu/index.html?q=" + suffix;
+                url = "https://static.kukuqaq.com/teachsearch/baidu/index.html?q=" + suffix;
                 break;
             case "google":
                 msg = "谷歌";
-                url = "https://u.iheit.com/teachsearch/google/index.html?q=" + suffix;
+                url = "https://static.kukuqaq.com/teachsearch/google/index.html?q=" + suffix;
                 break;
             case "bing":
                 msg = "必应";
-                url = "https://u.iheit.com/teachsearch/bing/index.html?q=" + suffix;
+                url = "https://static.kukuqaq.com/teachsearch/bing/index.html?q=" + suffix;
                 break;
             case "sougou":
                 msg = "搜狗";
-                url = "https://u.iheit.com/teachsearch/sougou/index.html?q=" + suffix;
+                url = "https://static.kukuqaq.com/teachsearch/sougou/index.html?q=" + suffix;
                 break;
             default: return null;
         }
@@ -602,7 +602,7 @@ public class ToolLogicImpl implements ToolLogic {
         Map<String, String> map = new HashMap<>();
         String mhyVersion = "2.1.0";
         String n = MD5Utils.toMD5(mhyVersion);
-        String i = String.valueOf(new Date().getTime()).substring(0, 10);
+        String i = String.valueOf(System.currentTimeMillis()).substring(0, 10);
         String r = BotUtils.randomStr(6);
         String c = MD5Utils.toMD5("salt=" + n + "&t=" + i + "&r=" + r);
         String ds = i + "," + r + "," + c;
@@ -752,7 +752,8 @@ public class ToolLogicImpl implements ToolLogic {
     }
 
     @Override
-    public String executeCode(String code, String type) throws IOException {
+    public String executeCode(String code, CodeType codeType) throws IOException {
+        String type = codeType.getType();
         String html = OkHttpUtils.getStr("http://www.dooccn.com/" + type + "/", OkHttpUtils.addUA(UA.PC));
         String id = BotUtils.regex("langid = ", ";", html);
         Map<String, String> map = new HashMap<>();
@@ -762,5 +763,33 @@ public class ToolLogicImpl implements ToolLogic {
         JSONObject jsonObject = OkHttpUtils.postJson("http://runcode-api2-ng.dooccn.com/compile2", map,
                 OkHttpUtils.addHeaders(null, "http://www.dooccn.com/", UA.PC));
         return jsonObject.getString("output");
+    }
+
+    @Override
+    public String urlToPic(String url) throws IOException {
+        Response response = OkHttpUtils.get("https://www.iloveimg.com/zh-cn/html-to-image", OkHttpUtils.addUA(UA.PC));
+        String cookie = OkHttpUtils.getCookie(response);
+        String str = OkHttpUtils.getStr(response);
+        String token = "Bearer " + BotUtils.regex("\"token\":\"", "\"", str);
+        String taskId = BotUtils.regex("ilovepdfConfig.taskId = '", "';", str);
+        MultipartBody uploadBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("task", taskId)
+                .addFormDataPart("cloud_file", url).build();
+        Map<String, String> headersMap = new HashMap<>();
+        headersMap.put("Authorization", token);
+        headersMap.put("user-agent", UA.PC.getValue());
+        Headers headers = OkHttpUtils.addHeaders(headersMap);
+        JSONObject uploadJsonObject = OkHttpUtils.postJson("https://api1h.ilovepdf.com/v1/upload", uploadBody, headers);
+        String serverFileName = uploadJsonObject.getString("server_filename");
+        MultipartBody previewBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("server_filename", serverFileName)
+                .addFormDataPart("task", taskId)
+                .addFormDataPart("url", url)
+                .addFormDataPart("view_width", "320")
+                .addFormDataPart("to_format", "jpg")
+                .addFormDataPart("block_ads", "false")
+                .addFormDataPart("remove_popups", "false").build();
+        JSONObject jsonObject = OkHttpUtils.postJson("https://api1h.ilovepdf.com/v1/preview", previewBody, headers);
+        return "https://api1h.ilovepdf.com/thumbnails/" + jsonObject.getString("thumbnail");
     }
 }

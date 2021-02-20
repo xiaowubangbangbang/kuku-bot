@@ -1,5 +1,6 @@
 package me.kuku.yuq;
 
+import com.IceCreamQAQ.Yu.hook.YuHook;
 import com.IceCreamQAQ.Yu.loader.AppClassloader;
 import com.IceCreamQAQ.Yu.util.IO;
 import com.icecreamqaq.yuq.mirai.YuQMiraiStart;
@@ -36,6 +37,8 @@ public class Start {
                 e.printStackTrace();
             }
         }
+        YuHook.putMatchHookItem("me.kuku.yuq.logic.impl.BaiduAILogicImpl.*",
+                "me.kuku.yuq.aop.BaiduAIAop");
         AppClassloader.registerTransformerList("com.IceCreamQAQ.Yu.web.WebClassTransformer");
         YuQMiraiStart.start();
     }

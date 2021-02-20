@@ -22,15 +22,15 @@ import me.kuku.yuq.logic.ToolLogic;
 import me.kuku.yuq.pojo.GroupMember;
 import me.kuku.yuq.pojo.Result;
 import me.kuku.yuq.service.GroupService;
+import me.kuku.yuq.utils.DateTimeFormatterUtils;
 import net.mamoe.mirai.contact.PermissionDeniedException;
 
 import javax.inject.Inject;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @GroupController
 @SuppressWarnings("unused")
@@ -95,7 +95,7 @@ public class BotController {
             List<Long> qqList = new ArrayList<>();
             StringBuilder sb = new StringBuilder().append("本群").append(day).append("天未发言的成员如下：").append("\n");
             for (GroupMember groupMember : list) {
-                if ((new Date().getTime() - groupMember.getLastTime()) / (1000 * 60 * 60 * 24) > Integer.parseInt(day)){
+                if ((System.currentTimeMillis() - groupMember.getLastTime()) / (1000 * 60 * 60 * 24) > Integer.parseInt(day)){
                     sb.append(groupMember.getQq()).append("\n");
                     qqList.add(groupMember.getQq());
                 }
@@ -114,7 +114,7 @@ public class BotController {
             StringBuilder sb = new StringBuilder().append("本群从未发言的成员如下：").append("\n");
             for (GroupMember groupMember : list) {
                 if ((groupMember.getLastTime().equals(groupMember.getJoinTime()) || groupMember.getIntegral() <= 1)
-                && new Date().getTime() - groupMember.getJoinTime() > 1000 * 60 * 60 * 24){
+                && System.currentTimeMillis() - groupMember.getJoinTime() > 1000 * 60 * 60 * 24){
                     sb.append(groupMember.getQq()).append("\n");
                     qqList.add(groupMember.getQq());
                 }
@@ -132,10 +132,16 @@ public class BotController {
         if (groupEntity.isSuperAdmin(qq) || qq == Long.parseLong(master)){
             for (Long innerQQ : notSpeakByDay) {
                 try {
+                    try {
+                        TimeUnit.SECONDS.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     group.get(innerQQ).kick("一定时间内未发言");
                 } catch (PermissionDeniedException e) {
-                    e.printStackTrace();
                     return "机器人的权限不足，无法执行";
+                } catch (Exception e){
+                    qqGroupLogic.deleteGroupMember(qq, group.getId(), true);
                 }
             }
             return "踢出成功！！";
@@ -150,9 +156,13 @@ public class BotController {
         if (groupEntity.isSuperAdmin(qq) || qq == Long.parseLong(master)){
             for (Long innerQQ : notSpeakByNever) {
                 try {
+                    try {
+                        TimeUnit.SECONDS.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     group.get(innerQQ).kick("从未发言");
                 } catch (PermissionDeniedException e) {
-                    e.printStackTrace();
                     return "机器人的权限不足，无法执行";
                 }
             }
@@ -166,13 +176,11 @@ public class BotController {
         Result<GroupMember> result = qqGroupLogic.queryMemberInfo(group, qqNo);
         GroupMember groupMember = result.getData();
         if (groupMember == null) return result.getMessage();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        StringBuilder sb = new StringBuilder();
-        sb.append("群名片：").append(groupMember.getGroupCard()).append("\n");
-        sb.append("Q龄：").append(groupMember.getAge()).append("\n");
-        sb.append("入群时间：").append(sdf.format(new Date(groupMember.getJoinTime()))).append("\n");
-        sb.append("最后发言时间：").append(sdf.format(new Date(groupMember.getLastTime())));
-        return sb.toString();
+        String pattern = "yyyy-MM-dd HH:mm:ss";
+        return "群名片：" + groupMember.getGroupCard() + "\n" +
+                "Q龄：" + groupMember.getAge() + "\n" +
+                "入群时间：" + DateTimeFormatterUtils.format(groupMember.getJoinTime(), pattern) + "\n" +
+                "最后发言时间：" + DateTimeFormatterUtils.format(groupMember.getLastTime(), pattern);
     }
 
     @QMsg(at = true)
@@ -239,7 +247,11 @@ public class BotController {
                 "https://img.kuku.me/images/2021/01/17/RRPG.jpg",
                 "https://img.kuku.me/images/2021/01/17/422Hd.jpg",
                 "https://img.kuku.me/images/2021/01/17/42ILN.jpg",
-                "https://img.kuku.me/images/2021/01/17/426zV.jpg"
+                "https://img.kuku.me/images/2021/01/17/426zV.jpg",
+                "https://img.kuku.me/images/2021/01/29/447pC.png",
+                "https://img.kuku.me/images/2021/01/29/44C5q.png",
+                "https://img.kuku.me/images/2021/01/29/44h4g.png",
+                "https://img.kuku.me/images/2021/01/29/44lZU.png"
         };
         String url = urlArr[(int) (Math.random() * urlArr.length)];
         return FunKt.getMif().at(resultQQ).plus(FunKt.getMif().imageByUrl(url)).plus("龙王，已蝉联" + map.get("desc") + "，快喷水！！");

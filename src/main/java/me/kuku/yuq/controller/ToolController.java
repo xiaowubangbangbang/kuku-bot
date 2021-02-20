@@ -12,12 +12,12 @@ import com.icecreamqaq.yuq.annotation.QMsg;
 import com.icecreamqaq.yuq.controller.ContextSession;
 import com.icecreamqaq.yuq.entity.Group;
 import com.icecreamqaq.yuq.job.RainInfo;
-import com.icecreamqaq.yuq.message.*;
-import me.kuku.yuq.dao.LoLiConDao;
+import com.icecreamqaq.yuq.message.Image;
+import com.icecreamqaq.yuq.message.Message;
+import com.icecreamqaq.yuq.message.MessageItemFactory;
+import com.icecreamqaq.yuq.message.XmlEx;
 import me.kuku.yuq.entity.ConfigEntity;
 import me.kuku.yuq.entity.GroupEntity;
-import me.kuku.yuq.entity.LoLiConEntity;
-import me.kuku.yuq.logic.MyApiLogic;
 import me.kuku.yuq.logic.QQAILogic;
 import me.kuku.yuq.logic.ToolLogic;
 import me.kuku.yuq.logic.MyApiLogic;
@@ -29,9 +29,6 @@ import me.kuku.yuq.service.GroupService;
 import me.kuku.yuq.service.MessageService;
 import me.kuku.yuq.utils.BotUtils;
 import me.kuku.yuq.utils.OkHttpUtils;
-import net.mamoe.mirai.Bot;
-import net.mamoe.mirai.contact.Member;
-import net.mamoe.mirai.message.action.Nudge;
 import okhttp3.Response;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
@@ -60,7 +57,10 @@ public class ToolController {
     @Inject
     private GroupService groupService;
     @Inject
-    private QQAILogic qqAiLogic;
+    private AILogic qqAILogic;
+    @Inject
+    @Named("baiduAILogic")
+    private AILogic baiduAILogic;
     @Inject
     private ConfigService configService;
     @Inject
@@ -79,7 +79,7 @@ public class ToolController {
     private final LocalDateTime startTime;
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(4);
 
-    public ToolController() {
+    public ToolController(){
         startTime = LocalDateTime.now();
     }
 
@@ -442,21 +442,6 @@ public class ToolController {
         return toolLogic.preventQQRed(url);
     }
 
-//    @Action("戳 {qqNo}")
-//    @QMsg(at = true)
-//    public String stamp(long qqNo, long group) {
-//        if (!"Android".equals(protocol)) return "戳一戳必须使用Android才能使用！！";
-//        Bot bot = Bot.getInstance(FunKt.getYuq().getBotId());
-//        net.mamoe.mirai.contact.Group groupObj = bot.getGroup(group);
-//        Member member;
-//        if (qqNo == bot.getId()) member = groupObj.getBotAsMember();
-//        else member = groupObj.getMembers().get(qqNo);
-//        boolean b = Nudge.Companion.sendNudge(groupObj, member.nudge());
-//        if (b) return "戳成功！！";
-//        else return "戳失败，对方已关闭戳一戳！！";
-//    }
-
-
     @Action("点歌 {name}")
     public Object musicFromQQ(String name) throws IOException {
         String xmlStr = toolLogic.songByQQ(name);
@@ -471,7 +456,7 @@ public class ToolController {
 
     @Action("统计")
     @Synonym({"运行状态"})
-    public String status() {
+    public String status(){
         SystemInfo systemInfo = new SystemInfo();
         CentralProcessor processor = systemInfo.getHardware().getProcessor();
         long[] prevTicks = processor.getSystemCpuLoadTicks();

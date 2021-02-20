@@ -4,6 +4,7 @@ import com.IceCreamQAQ.Yu.annotation.Action;
 import com.IceCreamQAQ.Yu.annotation.Before;
 import com.IceCreamQAQ.Yu.annotation.Config;
 import com.IceCreamQAQ.Yu.annotation.Synonym;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.icecreamqaq.yuq.FunKt;
 import com.icecreamqaq.yuq.annotation.GroupController;
@@ -16,6 +17,7 @@ import me.kuku.yuq.logic.ToolLogic;
 import me.kuku.yuq.service.GroupService;
 import me.kuku.yuq.service.RecallService;
 import me.kuku.yuq.utils.BotUtils;
+import me.kuku.yuq.utils.OkHttpUtils;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -33,6 +35,8 @@ public class ManageNotController {
     private ToolLogic toolLogic;
     @Config("YuQ.Mirai.bot.version")
     private String version;
+    @Config("YuQ.Mirai.bot.versionNo")
+    private String versionNo;
 
     @Before
     public GroupEntity before(Long group){
@@ -110,7 +114,7 @@ public class ManageNotController {
         List<RecallEntity> recallList = recallService.findByGroupAndQQ(group, qqNo);
         int all = recallList.size();
         if (num == null) num = 1;
-        if (num > all) return FunKt.getMif().at(qq).plus("您要查询的QQ只有" + all + "条撤回消息，超过范围了！！");
+        if (num > all || num < 0) return FunKt.getMif().at(qq).plus("您要查询的QQ只有" + all + "条撤回消息，超过范围了！！");
         RecallEntity recallEntity = recallList.get(num - 1);
         String timeStr = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(recallEntity.getDate());
         return FunKt.getMif().at(qq).plus("\n该消息撤回时间为" + timeStr + "\n消息内容为：\n")
@@ -120,8 +124,12 @@ public class ManageNotController {
     @Action("检查版本")
     public String checkUpdate() throws IOException {
         String gitVersion = toolLogic.queryVersion();
-        return "当前程序版本：" + version + "\n" +
-                "最新程序版本：" + gitVersion;
+        JSONObject jsonObject = OkHttpUtils.getJson("https://api.kuku.me/bot/version");
+        JSONArray jsonArray = jsonObject.getJSONObject("data").getJSONArray("data");
+        String version = versionNo;
+        if (jsonArray.size() != 0) version = jsonArray.getJSONObject(0).getString("version");
+        return "当前程序版本：" + this.version + "（" + this.versionNo + "）\n" +
+                "最新程序版本：" + gitVersion + "（" + version + "）";
     }
 
     @Action("开关")

@@ -66,6 +66,8 @@ public class GroupEntity {
     private Boolean locMonitor;
     private Boolean flashNotify;
     private Boolean repeat;
+    private Boolean voiceIdentify;
+    private Boolean uploadPicNotice;
 
     public GroupEntity(Long group){
         this.group = group;
@@ -82,6 +84,8 @@ public class GroupEntity {
         this.maxCommandCountOnTime = -1;
         this.maxViolationCount = 5;
         this.repeat = true;
+        this.voiceIdentify = false;
+        this.uploadPicNotice = false;
     }
 
     public JSONArray getBlackJsonArray(){

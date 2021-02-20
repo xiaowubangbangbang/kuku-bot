@@ -5,8 +5,6 @@ import me.kuku.yuq.pojo.CodeType;
 import me.kuku.yuq.pojo.Result;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.List;
 import java.util.Map;
 
 @AutoBind
@@ -45,7 +43,6 @@ public interface ToolLogic {
     String music163cloud() throws IOException;
     String searchQuestion(String question) throws IOException;
     Result<Map<String, String>> bvToAv(String bv) throws IOException;
-    List<Map<String, String>> zhiHuHot() throws IOException;
     String wordSegmentation(String text) throws IOException;
     String acgPic() throws IOException;
     byte[] danBooRuPic(String type) throws IOException;
@@ -61,8 +58,6 @@ public interface ToolLogic {
     byte[] photo() throws IOException;
     String uploadImage(byte[] bytes);
     String abstractWords(String word);
-    String executeCode(String code, String type) throws IOException;
-    default String executeCode(String code, CodeType codeType) throws IOException{
-        return executeCode(code, codeType.getType());
-    }
+    String executeCode(String code, CodeType codeType) throws IOException;
+    String urlToPic(String url) throws IOException;
 }
