@@ -9,3 +9,6 @@
 /device.json
 /yuq.iml
 /src/main/resources/conf/YuQ.properties
+/conf/
+/cache/servers.json
+/cache/session.bin

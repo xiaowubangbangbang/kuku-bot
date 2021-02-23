@@ -21,6 +21,7 @@ import me.kuku.yuq.entity.ConfigEntity;
 import me.kuku.yuq.entity.GroupEntity;
 import me.kuku.yuq.entity.QQLoginEntity;
 import me.kuku.yuq.logic.DCloudLogic;
+import me.kuku.yuq.logic.CodeLogic;
 import me.kuku.yuq.logic.QQLoginLogic;
 import me.kuku.yuq.logic.TeambitionLogic;
 import me.kuku.yuq.pojo.ConfigType;
@@ -33,6 +34,7 @@ import me.kuku.yuq.utils.BotUtils;
 import me.kuku.yuq.utils.OkHttpUtils;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +60,11 @@ public class SettingController extends QQController {
     private TeambitionLogic teambitionLogic;
     @Inject
     private DCloudLogic dCloudLogic;
+    @Inject
+    private CodeLogic codeLogic;
+    @Inject
+    @Named("fateAdm")
+    private CodeLogic fateAdmCodeLogic;
 
     @Before
     public void before(long qq, BotActionContext actionContext){
@@ -179,6 +186,15 @@ public class SettingController extends QQController {
         return "绑定loLiCon的apiKey成功！！";
     }
 
+    @Action("HaiZhiAi {apiKey}")
+    public String settingChatAi(String apiKey){
+        ConfigEntity configEntity = configService.findByType("ChatAi");
+        if (configEntity == null) configEntity = new ConfigEntity("ChatAi");
+        configEntity.setContent(apiKey);
+        configService.save(configEntity);
+        return "绑定海知智能机器人的apiKey成功！！";
+    }
+
     @Action("加超管 {groupNum} {qqNum}")
     @Synonym({"删超管 {groupNum} {qqNum}"})
     public String addSuperAdmin(long groupNum, Long qqNum, @PathVar(0) String str){
@@ -264,22 +280,67 @@ public class SettingController extends QQController {
         Message idMessage = session.waitNextMessage();
         String spaceId = BotUtils.firstString(idMessage);
         DCloudPojo dCloudPojo = dCloudLogic.getData();
-        reply(FunKt.getMif().imageByByteArray(dCloudPojo.getCaptchaImage()).plus("请输入图片验证码！！"));
-        Message codeMessage = session.waitNextMessage();
-        String code = BotUtils.firstString(codeMessage);
-        Result<DCloudPojo> loginResult = dCloudLogic.login(dCloudPojo, email, password, code);
+        Result<String> identifyResult = codeLogic.identify("3", dCloudPojo.getCaptchaImage());
+        if (identifyResult.isFailure()) return identifyResult.getMessage();
+        Result<DCloudPojo> loginResult = dCloudLogic.login(dCloudPojo, email, password, identifyResult.getData() );
         if (loginResult.isFailure()) return loginResult.getMessage();
         dCloudPojo = loginResult.getData();
         ConfigEntity configEntity = configService.findByType("dCloud");
         if (configEntity == null) configEntity = new ConfigEntity("dCloud");
         JSONObject jsonObject = new JSONObject();
-        // 有验证码，自动更新不了cookie
+        jsonObject.put("email", email);
+        jsonObject.put("password", password);
         jsonObject.put("cookie", dCloudPojo.getCookie());
         jsonObject.put("token", dCloudPojo.getToken());
         jsonObject.put("spaceId", spaceId);
         configEntity.setContentJsonObject(jsonObject);
         configService.save(configEntity);
         return "绑定dCloud成功！！";
+    }
+
+    @Action("图鉴 {username} {password}")
+    public String bindTt(String username, String password){
+        ConfigEntity configEntity = configService.findByType(ConfigType.IdentifyCode.getType());
+        if (configEntity == null) configEntity = new ConfigEntity(ConfigType.IdentifyCode.getType());
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("username", username);
+        jsonObject.put("password", password);
+        configEntity.setContentJsonObject(jsonObject);
+        configService.save(configEntity);
+        return "绑定图鉴成功！！";
+    }
+
+    @Action("saucenao {apiKey}")
+    public String sauceNao(String apiKey){
+        ConfigEntity configEntity = getEntity(ConfigType.SauceNao);
+        configEntity.setContent(apiKey);
+        configService.save(configEntity);
+        return "绑定sauceNao成功！！";
+    }
+
+    @Action("fateadm {pdId} {pdKey}")
+    public String bindFateAdm(String pdId, String pdKey){
+        ConfigEntity configEntity = getEntity(ConfigType.FateAdmCode);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("pdId", pdId);
+        jsonObject.put("pdKey", pdKey);
+        configEntity.setContentJsonObject(jsonObject);
+        configService.save(configEntity);
+        return "绑定fateadm打码成功！！";
+    }
+
+    @Action("ddocr {apiKey}")
+    public String bindDdOcr(String apiKey){
+        ConfigEntity configEntity = getEntity(ConfigType.DdOcrCode);
+        configEntity.setContent(apiKey);
+        configService.save(configEntity);
+        return "绑定ddOcr成功！！";
+    }
+
+    private ConfigEntity getEntity(ConfigType configType){
+        ConfigEntity configEntity = configService.findByType(configType.getType());
+        if (configEntity == null) configEntity = new ConfigEntity(configType.getType());
+        return configEntity;
     }
 
 }

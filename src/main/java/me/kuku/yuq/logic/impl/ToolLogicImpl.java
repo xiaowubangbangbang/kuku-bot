@@ -529,19 +529,16 @@ public class ToolLogicImpl implements ToolLogic {
     }
 
     @Override
-    public String identifyPic(String url) throws IOException {
-        JSONObject jsonObject = OkHttpUtils.getJson("https://saucenao.com/search.php?url=" + url + "&output_type=2");
+    public String sauceNaoIdentifyPic(String apiKey, String url) throws IOException {
+        JSONObject jsonObject = OkHttpUtils.getJson("https://saucenao.com/search.php?url=" + url + "&output_type=2&api_key=" + apiKey);
+        JSONObject headerJsonObject = jsonObject.getJSONObject("header");
+        if (headerJsonObject.getInteger("status") != 0) return headerJsonObject.getString("message");
         JSONArray jsonArray = jsonObject.getJSONArray("results");
         try {
             return jsonArray.getJSONObject(0).getJSONObject("data").getJSONArray("ext_urls").getString(0);
         }catch (NullPointerException e){
             return null;
         }
-    }
-
-    @Override
-    public String githubQuicken(String gitUrl) {
-        return "https://github.kuku.workers.dev/" + gitUrl;
     }
 
     @Override
@@ -791,5 +788,31 @@ public class ToolLogicImpl implements ToolLogic {
                 .addFormDataPart("remove_popups", "false").build();
         JSONObject jsonObject = OkHttpUtils.postJson("https://api1h.ilovepdf.com/v1/preview", previewBody, headers);
         return "https://api1h.ilovepdf.com/thumbnails/" + jsonObject.getString("thumbnail");
+    }
+
+    @Override
+    public String pasteUbuntu(String poster, String syntax, String content) {
+        Map<String, String> map = new HashMap<>();
+        map.put("poster", poster);
+        map.put("syntax", syntax);
+        map.put("content", content);
+        try {
+            Response response = OkHttpUtils.post("https://paste.ubuntu.com/", map, OkHttpUtils.addUA(UA.PC));
+            response.close();
+            return "https://paste.ubuntu.com/" + response.header("location");
+        } catch (IOException e) {
+            return "生成失败！！";
+        }
+    }
+
+    @Override
+    public byte[] girlImageGaNk() {
+        try {
+            JSONObject jsonObject = OkHttpUtils.getJson("https://gank.io/api/v2/random/category/Girl/type/Girl/count/1");
+            String url = jsonObject.getJSONArray("data").getJSONObject(0).getString("url");
+            return OkHttpUtils.downloadBytes(url);
+        } catch (IOException ioException) {
+            return null;
+        }
     }
 }

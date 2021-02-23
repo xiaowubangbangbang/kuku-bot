@@ -46,8 +46,7 @@ public interface ToolLogic {
     String wordSegmentation(String text) throws IOException;
     String acgPic() throws IOException;
     byte[] danBooRuPic(String type) throws IOException;
-    String identifyPic(String url) throws IOException;
-    String githubQuicken(String gitUrl);
+    String sauceNaoIdentifyPic(String apiKey, String url) throws IOException;
     String traceRoute(String domain) throws IOException;
     String teachYou(String content, String type) throws IOException;
     String preventQQRed(String url) throws IOException;
@@ -60,4 +59,6 @@ public interface ToolLogic {
     String abstractWords(String word);
     String executeCode(String code, CodeType codeType) throws IOException;
     String urlToPic(String url) throws IOException;
+    String pasteUbuntu(String poster, String syntax, String content);
+    byte[] girlImageGaNk();
 }

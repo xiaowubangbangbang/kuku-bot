@@ -16,7 +16,11 @@ public enum ConfigType {
 	BaiduAISpeechAppKey("BaiduAISpeechAppKey"),
 	BaiduAISpeechSecretKey("BaiduAISpeechSecretKey"),
 	Teambition("teambition"),
-	DCloud("dCloud");
+	DCloud("dCloud"),
+	SauceNao("sauceNao"),
+	IdentifyCode("identifyCode"),
+	FateAdmCode("fateAdmCode"),
+	DdOcrCode("ddOcrCode");
 
 
 	private final String type;
