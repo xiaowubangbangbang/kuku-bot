@@ -12,15 +12,14 @@ import com.icecreamqaq.yuq.annotation.QMsg;
 import com.icecreamqaq.yuq.controller.ContextSession;
 import com.icecreamqaq.yuq.entity.Group;
 import com.icecreamqaq.yuq.job.RainInfo;
-import com.icecreamqaq.yuq.message.Image;
-import com.icecreamqaq.yuq.message.Message;
-import com.icecreamqaq.yuq.message.MessageItemFactory;
-import com.icecreamqaq.yuq.message.XmlEx;
+import com.icecreamqaq.yuq.message.*;
+import me.kuku.yuq.dao.LoLiConDao;
 import me.kuku.yuq.entity.ConfigEntity;
 import me.kuku.yuq.entity.GroupEntity;
-import me.kuku.yuq.logic.QQAILogic;
-import me.kuku.yuq.logic.ToolLogic;
+import me.kuku.yuq.entity.LoLiConEntity;
+import me.kuku.yuq.logic.AILogic;
 import me.kuku.yuq.logic.MyApiLogic;
+import me.kuku.yuq.logic.ToolLogic;
 import me.kuku.yuq.pojo.CodeType;
 import me.kuku.yuq.pojo.InstagramPojo;
 import me.kuku.yuq.pojo.Result;
@@ -29,12 +28,15 @@ import me.kuku.yuq.service.GroupService;
 import me.kuku.yuq.service.MessageService;
 import me.kuku.yuq.utils.BotUtils;
 import me.kuku.yuq.utils.OkHttpUtils;
-import okhttp3.Response;
+import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.contact.NormalMember;
+import net.mamoe.mirai.message.action.Nudge;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -42,7 +44,9 @@ import java.net.URLEncoder;
 import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -79,7 +83,7 @@ public class ToolController {
     private final LocalDateTime startTime;
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(4);
 
-    public ToolController(){
+    public ToolController() {
         startTime = LocalDateTime.now();
     }
 
@@ -146,7 +150,7 @@ public class ToolController {
 
     @Action("缩短/{params}")
     @QMsg(at = true)
-    public String shortUrl(String params){
+    public String shortUrl(String params) {
         return BotUtils.shortUrl(params);
     }
 
@@ -285,7 +289,12 @@ public class ToolController {
                 return Message.Companion.toMessage("色图类型不匹配！！");
         }
     }
-
+    @Action("色图五连")
+    public void tenColorPic(Group group, long qq) throws IOException {
+        for (int i = 0; i < 5; i++) {
+            colorPic(group, qq);
+        }
+    }
     @Action("qr/{content}")
     @QMsg(at = true, atNewLine = true)
     public Message creatQrCode(String content) throws IOException {
@@ -337,7 +346,7 @@ public class ToolController {
     }
 
     @Action("网抑")
-    public XmlEx wy(){
+    public XmlEx wy() {
         return FunKt.getMif().xmlEx(1, "<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><msg serviceID=\"1\" templateID=\"-1\" action=\"app\" actionData=\"com.netease.cloudmusic\" brief=\"点击启动网抑\" sourceMsgId=\"0\" url=\"https://www.kuku.me/archives/6/\" flag=\"2\" adverSign=\"0\" multiMsgFlag=\"0\"><item layout=\"12\" advertiser_id=\"0\" aid=\"0\"><picture cover=\"https://imgurl.cloudimg.cc/2020/07/26/2a7410726090854.jpg\" w=\"0\" h=\"0\" /><title>启动网抑音乐</title></item><source name=\"今天你网抑了吗\" icon=\"\" action=\"\" appid=\"0\" /></msg>");
     }
 
@@ -353,7 +362,7 @@ public class ToolController {
     public Message bvToAv(Message message) throws IOException {
         String bv = message.getBody().get(0).toPath();
         Result<Map<String, String>> result = toolLogic.bvToAv(bv);
-        if (result.getCode() == 200){
+        if (result.getCode() == 200) {
             Map<String, String> map = result.getData();
             MessageItemFactory mif = FunKt.getMif();
             return mif.imageByUrl(map.get("pic")).plus(
@@ -361,19 +370,7 @@ public class ToolController {
                             "描述：" + map.get("desc") +
                             "链接：" + map.get("url")
             );
-        }else return Message.Companion.toMessage(result.getMessage());
-    }
-
-    @Action("知乎热榜")
-    @QMsg(at = true, atNewLine = true)
-    public String zhiHuHot() throws IOException {
-        List<Map<String, String>> list = toolLogic.zhiHuHot();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < list.size(); i++){
-            Map<String, String> map = list.get(i);
-            sb.append(i + 1).append("、").append(map.get("title")).append("\n");
-        }
-        return sb.deleteCharAt(sb.length() - 1).toString();
+        } else return Message.Companion.toMessage(result.getMessage());
     }
 
     @Action("分词")
@@ -401,12 +398,12 @@ public class ToolController {
     @Synonym({"ocr {img}"})
     @QMsg(at = true, atNewLine = true)
     public String ocr(Image img) throws IOException {
-        return qqAiLogic.generalOCR(img.getUrl());
+        return baiduAILogic.generalOCR(img.getUrl());
     }
 
     @Action("github加速 {url}")
     @QMsg(at = true)
-    public String githubQuicken(ContextSession session, long qq, String url){
+    public String githubQuicken(ContextSession session, long qq, String url) {
         return BotUtils.shortUrl(toolLogic.githubQuicken(url));
     }
 
@@ -417,10 +414,10 @@ public class ToolController {
     }
 
     @Action("查发言数")
-    public String queryMessage(Group group){
+    public String queryMessage(Group group) {
         Map<Long, Long> map = messageService.findCountQQByGroupAndToday(group.getId());
         StringBuilder sb = new StringBuilder().append("本群今日发言数统计如下：").append("\n");
-        for (Map.Entry<Long, Long> entry: map.entrySet()){
+        for (Map.Entry<Long, Long> entry : map.entrySet()) {
             sb.append("@").append(group.get(entry.getKey()).nameCardOrName())
                     .append("（").append(entry.getKey()).append("）").append("：")
                     .append(entry.getValue()).append("条").append("\n");
@@ -430,10 +427,10 @@ public class ToolController {
 
     @Action("语音合成 {text}")
     public Message voice(String text, Group group, long qq) throws IOException {
-        Result<byte[]> result = qqAiLogic.voiceSynthesis(text);
-        if (result.getCode() == 200){
+        Result<byte[]> result = qqAILogic.voiceSynthesis(text);
+        if (result.getCode() == 200) {
             return FunKt.getMif().voiceByByteArray(result.getData()).toMessage();
-        }else return FunKt.getMif().at(qq).plus(result.getMessage());
+        } else return FunKt.getMif().at(qq).plus(result.getMessage());
     }
 
     @QMsg(at = true)
@@ -456,7 +453,7 @@ public class ToolController {
 
     @Action("统计")
     @Synonym({"运行状态"})
-    public String status(){
+    public String status() {
         SystemInfo systemInfo = new SystemInfo();
         CentralProcessor processor = systemInfo.getHardware().getProcessor();
         long[] prevTicks = processor.getSystemCpuLoadTicks();
@@ -503,20 +500,20 @@ public class ToolController {
         long hours = duration.toHours() % 24;
         long minutes = duration.toMinutes() % 60;
         String ss = days + "天" + hours + "小时" + minutes + "分钟";
-        return  "程序运行时长：" + ss + "\n" +
+        return "程序运行时长：" + ss + "\n" +
                 "cpu核数：" + processor.getLogicalProcessorCount() + "\n" +
-                "cpu当前使用率：" + new DecimalFormat("#.##%").format(1.0-(idle * 1.0 / totalCpu)) + "\n" +
+                "cpu当前使用率：" + new DecimalFormat("#.##%").format(1.0 - (idle * 1.0 / totalCpu)) + "\n" +
                 "总内存：" + formatByte(totalByte) + "\n" +
-                "已使用内存：" + formatByte(totalByte-acaliableByte) + "\n" +
+                "已使用内存：" + formatByte(totalByte - acaliableByte) + "\n" +
                 "操作系统：" + osName + "\n" +
                 "系统架构：" + osArch + "\n" +
                 "jvm内存总量：" + formatByte(jvmTotalMemoryByte) + "\n" +
-                "jvm已使用内存：" + formatByte(jvmTotalMemoryByte-freeMemoryByte) + "\n" +
+                "jvm已使用内存：" + formatByte(jvmTotalMemoryByte - freeMemoryByte) + "\n" +
                 "java版本：" + jdkVersion;
     }
 
     @Action("消息统计")
-    public String message(){
+    public String message() {
         return "当前收发消息状态：\n" +
                 "收：" + rainInfo.getCountRm() + " / 分钟\n" +
                 "发：" + rainInfo.getCountSm() + " / 分钟\n" +
@@ -525,22 +522,22 @@ public class ToolController {
                 "发：" + rainInfo.getCountSa() + " 条。";
     }
 
-    private String formatByte(long byteNumber){
+    private String formatByte(long byteNumber) {
         //换算单位
         double FORMAT = 1024.0;
-        double kbNumber = byteNumber/FORMAT;
-        if(kbNumber<FORMAT){
+        double kbNumber = byteNumber / FORMAT;
+        if (kbNumber < FORMAT) {
             return new DecimalFormat("#.##KB").format(kbNumber);
         }
-        double mbNumber = kbNumber/FORMAT;
-        if(mbNumber<FORMAT){
+        double mbNumber = kbNumber / FORMAT;
+        if (mbNumber < FORMAT) {
             return new DecimalFormat("#.##MB").format(mbNumber);
         }
-        double gbNumber = mbNumber/FORMAT;
-        if(gbNumber<FORMAT){
+        double gbNumber = mbNumber / FORMAT;
+        if (gbNumber < FORMAT) {
             return new DecimalFormat("#.##GB").format(gbNumber);
         }
-        double tbNumber = gbNumber/FORMAT;
+        double tbNumber = gbNumber / FORMAT;
         return new DecimalFormat("#.##TB").format(tbNumber);
     }
 
@@ -578,7 +575,7 @@ public class ToolController {
 
     @Action("kuku上传 {image}")
     @QMsg(at = true)
-    public String uploadImage(Image image){
+    public String uploadImage(Image image) {
         try {
             return "您上传的图片链接如下：" + toolLogic.uploadImage(OkHttpUtils.getBytes(image.getUrl()));
         } catch (IOException e) {
@@ -589,30 +586,30 @@ public class ToolController {
 
     @Action("抽象话 {word}")
     @QMsg(at = true)
-    public String abstractWords(String word){
+    public String abstractWords(String word) {
         return "抽象话如下：\n" + toolLogic.abstractWords(word);
     }
 
     @Action("窥屏检测")
-    public void checkPeeping(Group group){
+    public void checkPeeping(Group group) {
         String random = BotUtils.randomNum(4);
         group.sendMessage(FunKt.getMif().jsonEx("{\"app\":\"com.tencent.miniapp\",\"desc\":\"\",\"view\":\"notification\",\"ver\":\"1.0.0.11\",\"prompt\":\"QQ程序\",\"appID\":\"\",\"sourceName\":\"\",\"actionData\":\"\",\"actionData_A\":\"\",\"sourceUrl\":\"\",\"meta\":{\"notification\":{\"appInfo\":{\"appName\":\"三楼有只猫\",\"appType\":4,\"appid\":1109659848,\"iconUrl\":\"https:\\/\\/api.kuku.me\\/tool\\/peeping\\/check\\/" + random + "\"},\"button\":[],\"data\":[],\"emphasis_keyword\":\"\",\"title\":\"请等待15s\"}},\"text\":\"\",\"extraApps\":[],\"sourceAd\":\"\",\"extra\":\"\"}").toMessage());
         executorService.schedule(() -> {
             String msg;
             try {
                 JSONObject jsonObject = OkHttpUtils.getJson("https://api.kuku.me/tool/peeping/result/" + random);
-                if (jsonObject.getInteger("code") == 200){
+                if (jsonObject.getInteger("code") == 200) {
                     StringBuilder sb = new StringBuilder();
                     JSONArray jsonArray = jsonObject.getJSONObject("data").getJSONArray("list");
                     sb.append("检测到共有").append(jsonArray.size()).append("位小伙伴在窥屏").append("\n");
-                    for (int i = 0; i < jsonArray.size(); i++){
+                    for (int i = 0; i < jsonArray.size(); i++) {
                         JSONObject singleJsonObject = jsonArray.getJSONObject(i);
                         sb.append(singleJsonObject.getString("ip"))
                                 .append("-").append(singleJsonObject.getString("address"))
                                 /*.append("-").append(singleJsonObject.getString("simpleUserAgent"))*/.append("\n");
                     }
                     msg = BotUtils.removeLastLine(sb);
-                }else msg = jsonObject.getString("message");
+                } else msg = jsonObject.getString("message");
             } catch (IOException e) {
                 e.printStackTrace();
                 msg = "查询失败，请重试！！";
@@ -628,5 +625,20 @@ public class ToolController {
         Message message = session.waitNextMessage();
         String code = Message.Companion.firstString(message);
         return toolLogic.executeCode(code, CodeType.JavaEight);
+    }
+
+    @Action("戳 {qqNo}")
+    @QMsg(at = true)
+    public String stamp(long qqNo, long group) {
+//        if (!"Android".equals(protocol)) return "戳一戳必须使用Android才能使用！！";
+//        Bot bot = Bot.getInstance(FunKt.getYuq().getBotId());
+//        net.mamoe.mirai.contact.Group groupObj = bot.getGroup(group);
+//        NormalMember member;
+//        if (qqNo == bot.getId()) member = groupObj.getBotAsMember();
+//        else member = groupObj.getMembers().get(qqNo);
+//        boolean b = Nudge.Companion.sendNudge(groupObj, member.nudge());
+//        if (b) return "戳成功！！";
+//        else return "戳失败，对方已关闭戳一戳！！";
+        return null;
     }
 }

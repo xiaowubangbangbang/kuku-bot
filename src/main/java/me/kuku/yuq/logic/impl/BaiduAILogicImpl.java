@@ -2,7 +2,6 @@ package me.kuku.yuq.logic.impl;
 
 import com.IceCreamQAQ.Yu.annotation.HookBy;
 import com.baidu.aip.contentcensor.AipContentCensor;
-import com.baidu.aip.contentcensor.EImgType;
 import com.baidu.aip.ocr.AipOcr;
 import com.baidu.aip.speech.AipSpeech;
 import com.baidu.aip.speech.TtsResponse;

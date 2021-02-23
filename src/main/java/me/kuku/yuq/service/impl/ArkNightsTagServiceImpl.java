@@ -16,7 +16,7 @@ public class ArkNightsTagServiceImpl implements ArkNightsTagService {
     public static void getInstance() {
         if (arkNightsUserEntities == null) {
             try {
-                arkNightsUserEntities = JSONObject.parseArray(OkHttpUtils.getStr("https://www.bigfun.cn/static/aktools/1611029120/data/akhr.json"), ArkNightsUserEntity.class);
+                arkNightsUserEntities = JSONObject.parseArray(OkHttpUtils.getStr("https://www.bigfun.cn/static/aktools/1612664609/data/akhr.json"), ArkNightsUserEntity.class);
             } catch (IOException e) {
                 e.printStackTrace();
             }
