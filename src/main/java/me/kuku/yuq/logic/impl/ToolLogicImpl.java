@@ -79,7 +79,8 @@ public class ToolLogicImpl implements ToolLogic {
 
     @Override
     public String mouthOdor() throws IOException {
-        return OkHttpUtils.getJson("https://s.nmsl8.club/getloveword?type=2").getString("content");
+        //return OkHttpUtils.getJson("https://s.nmsl8.club/getloveword?type=2").getString("content");
+        return OkHttpUtils.getStr("https://nmsl.shadiao.app/api.php?level=min&lang=zh_cn");
     }
 
     @Override

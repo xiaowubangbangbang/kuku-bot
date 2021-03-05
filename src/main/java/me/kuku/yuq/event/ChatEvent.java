@@ -50,6 +50,8 @@ public class ChatEvent {
         } catch (IllegalStateException ex) {
             return;
         }
+        //如果是 729480566 ,保存他的对话
+        //TODO
         String type = groupEntity.getChatAiType();
         if (type == null) return;
         MessageItemFactory mif = FunKt.getMif();
