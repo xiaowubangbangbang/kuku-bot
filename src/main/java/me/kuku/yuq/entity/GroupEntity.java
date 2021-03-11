@@ -52,6 +52,9 @@ public class GroupEntity {
     @Lob
     @Column(columnDefinition = "text")
     private String commandLimitList;
+    @Lob
+    @Column(columnDefinition = "text")
+    private String shellCommandList;
     private Boolean colorPic;
     private Boolean status;
     private Boolean recall;
@@ -69,6 +72,7 @@ public class GroupEntity {
     private Boolean repeat;
     private Boolean voiceIdentify;
     private Boolean uploadPicNotice;
+    private Boolean groupAdminAuth;
 
     public GroupEntity(Long group){
         this.group = group;
@@ -87,6 +91,7 @@ public class GroupEntity {
         this.repeat = true;
         this.voiceIdentify = false;
         this.uploadPicNotice = false;
+        this.groupAdminAuth = false;
     }
 
     public JSONArray getBlackJsonArray(){
@@ -177,6 +182,15 @@ public class GroupEntity {
 
     public void setCommandLimitJsonObject(JSONObject jsonObject){
         this.commandLimitList = jsonObject.toString();
+    }
+
+    public JSONArray getShellCommandJsonArray(){
+        if (shellCommandList == null) return new JSONArray();
+        else return JSON.parseArray(shellCommandList);
+    }
+
+    public void setShellCommandJsonArray(JSONArray jsonArray){
+        this.shellCommandList = jsonArray.toString();
     }
 
     public boolean isSuperAdmin(long qq){

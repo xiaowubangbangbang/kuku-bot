@@ -132,7 +132,7 @@ public class BiliBiliJob {
         }
     }
 
-    @Cron("2m")
+    @Cron("1m")
     public void liveMonitor(){
         List<BiliBiliEntity> list = biliBiliService.findAll();
         list.forEach( biliBiliEntity -> {
@@ -147,12 +147,14 @@ public class BiliBiliJob {
                     Boolean b = biliBiliLogic.isLiveOnline(id.toString());
                     if (map.containsKey(id)){
                         if (map.get(id) != b){
+                            map.put(id, b);
                             String msg;
                             if (b) msg = "直播啦！！";
                             else msg = "下播了！！";
                             FunKt.getYuq().getGroups().get(biliBiliEntity.getGroup())
-                                    .get(qq).sendMessage(Message.Companion.toMessage(
-                                            jsonObject.getString("name") + msg
+                                    .get(qq).sendMessage(
+                                            BotUtils.toMessage("哔哩哔哩开播提醒：\n" +
+                                                    jsonObject.getString("name") + msg
                             ));
                         }
                     }else map.put(id, b);

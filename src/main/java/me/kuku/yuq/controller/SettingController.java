@@ -19,17 +19,16 @@ import com.icecreamqaq.yuq.message.Message;
 import com.icecreamqaq.yuq.mirai.MiraiBot;
 import me.kuku.yuq.entity.ConfigEntity;
 import me.kuku.yuq.entity.GroupEntity;
+import me.kuku.yuq.entity.MiHoYoEntity;
 import me.kuku.yuq.entity.QQLoginEntity;
-import me.kuku.yuq.logic.DCloudLogic;
-import me.kuku.yuq.logic.CodeLogic;
-import me.kuku.yuq.logic.QQLoginLogic;
-import me.kuku.yuq.logic.TeambitionLogic;
+import me.kuku.yuq.logic.*;
 import me.kuku.yuq.pojo.ConfigType;
 import me.kuku.yuq.pojo.DCloudPojo;
 import me.kuku.yuq.pojo.Result;
 import me.kuku.yuq.pojo.TeambitionPojo;
 import me.kuku.yuq.service.ConfigService;
 import me.kuku.yuq.service.GroupService;
+import me.kuku.yuq.service.MiHoYoService;
 import me.kuku.yuq.utils.BotUtils;
 import me.kuku.yuq.utils.OkHttpUtils;
 
@@ -42,7 +41,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 @PrivateController
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "SpellCheckingInspection"})
 public class SettingController extends QQController {
     @Inject
     private GroupService groupService;
@@ -89,15 +88,15 @@ public class SettingController extends QQController {
     @Action("同意入群 {groupNo}")
     public String agreeAddGroup(QQLoginEntity qqLoginEntity, long groupNo) throws IOException {
         List<Map<String, String>> groupMsgList = qqLoginLogic.getGroupMsgList(qqLoginEntity);
-        AtomicReference<Map<String, String>> mm = new AtomicReference<>();
+        Map<String, String> resultMap = null;
         for (Map<String, String> map: groupMsgList){
             if (String.valueOf(groupNo).equals(map.get("group"))){
-                mm.set(map);
+                resultMap = map;
                 break;
             }
         }
-        if (mm.get() == null) return "没有找到这个群号";
-        return qqLoginLogic.operatingGroupMsg(qqLoginEntity, "agree", mm.get(), null);
+        if (resultMap == null) return "没有找到这个群号";
+        return qqLoginLogic.operatingGroupMsg(qqLoginEntity, "agree", resultMap, null);
     }
 
     @Action("退群 {groupNo}")
@@ -219,7 +218,7 @@ public class SettingController extends QQController {
         reply("请输入需要绑定的项目名称");
         Message projectMessage = session.waitNextMessage();
         String project = BotUtils.firstString(projectMessage);
-        reply("请输入api中添加的名称");
+        reply("请输入api中添加的名称（由于teambition的下载链接只能动态获取，所以需要使用api来解析下载链接，名称为api中的唯一标识）");
         Message nameMessage = session.waitNextMessage();
         String name = BotUtils.firstString(nameMessage);
         Result<TeambitionPojo> loginResult = teambitionLogic.login(phone, password);
@@ -237,10 +236,21 @@ public class SettingController extends QQController {
         jsonObject.put("password", password);
         jsonObject.put("cookie", teambitionPojo.getCookie());
         jsonObject.put("auth", teambitionPojo.getStrikerAuth());
+        jsonObject.put("name", name);
         jsonObject.put("project", project);
         jsonObject.put("projectId", teambitionPojo.getProjectId());
         jsonObject.put("rootId", teambitionPojo.getRootId());
-        jsonObject.put("name", name);
+        Result<TeambitionPojo> panResult = teambitionLogic.getPanInfo(teambitionPojo);
+        if (panResult.isFailure()){
+            reply("尝试获取teambition网盘信息失败，原因：" + panResult.getMessage());
+        }else {
+            TeambitionPojo pojo = panResult.getData();
+            jsonObject.put("panOrgId", pojo.getPanOrgId());
+            jsonObject.put("panSpaceId", pojo.getPanSpaceId());
+            jsonObject.put("panRootId", pojo.getPanRootId());
+            jsonObject.put("panDriveId", pojo.getPanDriveId());
+            jsonObject.put("userId", pojo.getUserId());
+        }
         configEntity.setContentJsonObject(jsonObject);
         configService.save(configEntity);
         return "绑定Teambition成功！！";

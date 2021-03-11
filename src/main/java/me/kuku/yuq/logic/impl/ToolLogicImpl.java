@@ -4,8 +4,6 @@ import com.IceCreamQAQ.Yu.util.IO;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import me.kuku.yuq.dao.LoLiConDao;
-import me.kuku.yuq.entity.LoLiConEntity;
 import me.kuku.yuq.logic.ToolLogic;
 import me.kuku.yuq.pojo.CodeType;
 import me.kuku.yuq.pojo.Result;
@@ -20,7 +18,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import javax.inject.Inject;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -38,8 +35,8 @@ public class ToolLogicImpl implements ToolLogic {
     private final String appId = "ghpgtsokjvkjdmlk";
     private final String appSecret = "N2hNMC93empxb0twUW1jd1FRbVVtQT09";
     private final String params = "&app_id=" + appId + "&app_secret=" + appSecret;
-    private final String myApi = "https://api.kuku.me";
-
+    @Config("YuQ.Mirai.bot.api")
+    private String api;
     @Inject
     private LoLiConDao loLiConDao;
 
@@ -86,8 +83,7 @@ public class ToolLogicImpl implements ToolLogic {
 
     @Override
     public String mouthOdor() throws IOException {
-        //return OkHttpUtils.getJson("https://s.nmsl8.club/getloveword?type=2").getString("content");
-        return OkHttpUtils.getStr("https://nmsl.shadiao.app/api.php?level=min&lang=zh_cn");
+        return OkHttpUtils.getJson("https://s.nmsl8.club/getloveword?type=2").getString("content");
     }
 
     @Override
@@ -370,8 +366,6 @@ public class ToolLogicImpl implements ToolLogic {
                 map.put("title", dataJsonObject.getString("title"));
                 map.put("pid", dataJsonObject.getString("pid"));
                 map.put("uid", dataJsonObject.getString("uid"));
-                //保存lolicon涩图
-                loLiConDao.save(LoLiConEntity.builder().title(map.get("title")).pid(map.get("pid")).uid(map.get("uid")).url(map.get("url")).type(isR18?"loliconR18":"lolicon").build());
                 return Result.success(map);
             case 401: return Result.failure("APIKEY 不存在或被封禁", null);
             case 429: return Result.failure("达到调用额度限制，距离下一次恢复额度时间：" + jsonObject.getLong("quota_min_ttl") + "秒", null);

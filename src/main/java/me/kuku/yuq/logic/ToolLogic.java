@@ -1,6 +1,7 @@
 package me.kuku.yuq.logic;
 
 import com.IceCreamQAQ.Yu.annotation.AutoBind;
+import com.alibaba.fastjson.JSONObject;
 import me.kuku.yuq.pojo.CodeType;
 import me.kuku.yuq.pojo.Result;
 
@@ -31,7 +32,7 @@ public interface ToolLogic {
     String restoreShortUrl(String url) throws IOException;
     Result<String> weather(String local, String cookie) throws IOException;
     String ping(String domain) throws IOException;
-    Result<Map<String, String>> colorPicByLoLiCon(String apiKey, boolean isR18) throws IOException;
+    Result<Map<String, String>> colorPicByLoLiCon(String apiKey, boolean isR18, boolean isProxy) throws IOException;
     byte[] piXivPicProxy(String url) throws IOException;
     Map<String, String> hiToKoTo() throws IOException;
     byte[] creatQr(String content) throws IOException;
@@ -41,7 +42,6 @@ public interface ToolLogic {
     byte[] queryTime() throws IOException;
     String queryVersion() throws IOException;
     String music163cloud() throws IOException;
-    String searchQuestion(String question) throws IOException;
     Result<Map<String, String>> bvToAv(String bv) throws IOException;
     String wordSegmentation(String text) throws IOException;
     String acgPic() throws IOException;
@@ -52,7 +52,6 @@ public interface ToolLogic {
     String preventQQRed(String url) throws IOException;
     String songByQQ(String name) throws IOException;
     Result<String> songBy163(String name) throws IOException;
-    String genShinUserInfo(long id) throws IOException;
     byte[] cosplay() throws IOException;
     byte[] photo() throws IOException;
     String uploadImage(byte[] bytes);
@@ -61,4 +60,5 @@ public interface ToolLogic {
     String urlToPic(String url) throws IOException;
     String pasteUbuntu(String poster, String syntax, String content);
     byte[] girlImageGaNk();
+    JSONObject luckJson(int index) throws IOException;
 }
