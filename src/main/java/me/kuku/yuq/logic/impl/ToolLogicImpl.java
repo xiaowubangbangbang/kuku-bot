@@ -1,9 +1,11 @@
 package me.kuku.yuq.logic.impl;
 
+import com.IceCreamQAQ.Yu.annotation.Config;
 import com.IceCreamQAQ.Yu.util.IO;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import me.kuku.yuq.dao.LoLiConDao;
 import me.kuku.yuq.logic.ToolLogic;
 import me.kuku.yuq.pojo.CodeType;
 import me.kuku.yuq.pojo.Result;
@@ -18,12 +20,14 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import javax.inject.Inject;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -351,11 +355,12 @@ public class ToolLogicImpl implements ToolLogic {
     }
 
     @Override
-    public Result<Map<String, String>> colorPicByLoLiCon(String apiKey, boolean isR18) throws IOException {
+    public Result<Map<String, String>> colorPicByLoLiCon(String apiKey, boolean isR18, boolean isProxy) throws IOException {
         int r18 = 0;
         if (isR18) r18 = 1;
-//        JSONObject jsonObject = OkHttpUtils.getJson("https://api.lolicon.app/setu/?apikey=" + apiKey + "&r18=" + r18);
-        JSONObject jsonObject = OkHttpUtils.getJson("https://api.kuku.me/lolicon/?apikey=" + apiKey + "&r18=" + r18);
+        JSONObject jsonObject;
+        if (isProxy) jsonObject = OkHttpUtils.getJson("https://api.kuku.me/lolicon/?apikey=" + apiKey + "&r18=" + r18);
+        else jsonObject = OkHttpUtils.getJson("https://api.lolicon.app/setu/?apikey=" + apiKey + "&r18=" + r18);
         switch (jsonObject.getInteger("code")){
             case 0:
                 JSONObject dataJsonObject = jsonObject.getJSONArray("data").getJSONObject(0);
@@ -375,7 +380,7 @@ public class ToolLogicImpl implements ToolLogic {
 
     @Override
     public byte[] piXivPicProxy(String url) throws IOException {
-        return OkHttpUtils.getBytes(myApi + "/pixiv/picbyurl?url=" + URLEncoder.encode(url, "utf-8"));
+        return OkHttpUtils.getBytes(api + "/pixiv/picbyurl?url=" + URLEncoder.encode(url, "utf-8"));
     }
 
     @Override
@@ -451,13 +456,6 @@ public class ToolLogicImpl implements ToolLogic {
     public String music163cloud() throws IOException {
         JSONObject jsonObject = OkHttpUtils.getJson("http://api.heerdev.top/nemusic/random");
         return jsonObject.getString("text");
-    }
-
-    @Override
-    public String searchQuestion(String question) throws IOException {
-        JSONObject jsonObject = OkHttpUtils.getJson("http://api.xmlm8.com/tk.php?t=" + question);
-        return "问题：" + jsonObject.getString("tm") + "\n" +
-                "答案：" + jsonObject.getString("da");
     }
 
     @Override
@@ -599,82 +597,6 @@ public class ToolLogicImpl implements ToolLogic {
     }
 
     @Override
-    public String genShinUserInfo(long id) throws IOException {
-        Map<String, String> map = new HashMap<>();
-        String mhyVersion = "2.1.0";
-        String n = MD5Utils.toMD5(mhyVersion);
-        String i = String.valueOf(System.currentTimeMillis()).substring(0, 10);
-        String r = BotUtils.randomStr(6);
-        String c = MD5Utils.toMD5("salt=" + n + "&t=" + i + "&r=" + r);
-        String ds = i + "," + r + "," + c;
-        map.put("DS", ds);
-        map.put("x-rpc-app_version", "2.1.0");
-        map.put("User-Agent", "Mozilla/5.0 (Linux; Android 9; Unspecified Device) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/39.0.0.0 Mobile Safari/537.36 miHoYoBBS/2.2.");
-        map.put("x-rpc-client_type", "4");
-        map.put("Referer", "https://webstatic.mihoyo.com/app/community-game-records/index.html?v=6");
-        map.put("X-Requested-With", "com.mihoyo.hyperion");
-        JSONObject jsonObject = OkHttpUtils.getJson("https://api-takumi.mihoyo.com/game_record/genshin/api/index?server=cn_gf01&role_id=" + id,
-                map);
-        StringBuilder sb = new StringBuilder(id + " Genshin Info:\nRoles:\n");
-        JSONArray jsonArray = jsonObject.getJSONObject("data").getJSONArray("avatars");
-        for (Object obj: jsonArray){
-            JSONObject singleJsonObject = (JSONObject) obj;
-            String element = singleJsonObject.getString("element");
-            String type;
-            switch (element){
-                case "None": type = "无属性"; break;
-                case "Anemo": type = "风属性"; break;
-                case "Pyro": type = "火属性"; break;
-                case "Geo": type = "岩属性"; break;
-                case "Electro": type = "雷属性"; break;
-                case "Cryo": type = "冰属性"; break;
-                case "Hydro": type = "水属性"; break;
-                default: type = "草属性";
-            }
-            String name = singleJsonObject.getString("name");
-            String text = "";
-            if ("旅行者".equals(name)){
-                String image = singleJsonObject.getString("image");
-                text += "* " + name + "：\n";
-                if (image.contains("UI_AvatarIcon_PlayerGirl")){
-                    text += "  - [萤——妹妹] " + singleJsonObject.getString("level") + "级 " + type + "\n";
-                }else if (image.contains("UI_AvatarIcon_PlayerBoy")){
-                    text += "  - [空——哥哥] " + singleJsonObject.getString("level") + "级 " + type + "\n";
-                }else{
-                    text += "  - [性别判断失败] " + singleJsonObject.getString("level") + "级 " + type + "\n";
-                }
-            }else{
-                text += "* " + singleJsonObject.getString("name") + " " + singleJsonObject.getString("rarity") +
-                        "★角色:\n";
-                text += "  - " + singleJsonObject.getString("level") + "级 好感度(" + singleJsonObject.getString("fetter") +
-                        ")级 " + type + "\n";
-            }
-            sb.append(text);
-        }
-        JSONObject statsJsonObject = jsonObject.getJSONObject("data").getJSONObject("stats");
-        sb.append("\nAccount Info:\n");
-        sb.append("- 活跃天数：").append(statsJsonObject.getString("active_day_number")).append(" 天\n");
-        sb.append("- 达成成就：").append(statsJsonObject.getString("achievement_number")).append(" 个\n");
-        sb.append("- 获得角色：").append(statsJsonObject.getString("avatar_number")).append(" 个\n");
-        sb.append("- 深渊螺旋：");
-        if ("-".equals(statsJsonObject.getString("spiral_abyss"))){
-            sb.append("没打");
-        }else sb.append("打到了").append(statsJsonObject.getString("spiral_abyss"));
-        sb.append("\n").append("* 收集：\n");
-        sb.append("  - 风神瞳").append(statsJsonObject.getString("anemoculus_number")).append(" 个 岩神瞳")
-                .append(statsJsonObject.getString("geoculus_number")).append("个\n");
-        sb.append("* 解锁：\n");
-        sb.append("  - 传送点").append(statsJsonObject.getString("way_point_number")).append("个 秘境")
-                .append(statsJsonObject.getString("domain_number")).append("个\n");
-        sb.append("* 共开启宝箱：\n");
-        sb.append("  - 普通：").append(statsJsonObject.getString("common_chest_number")).append("个 精致：")
-                .append(statsJsonObject.getString("exquisite_chest_number")).append("个\n")
-                .append("  - 珍贵：").append(statsJsonObject.getString("luxurious_chest_number")).append("个 华丽：")
-                .append(statsJsonObject.getString("precious_chest_number")).append("个");
-        return sb.toString();
-    }
-
-    @Override
     public byte[] cosplay() throws IOException {
         return OkHttpUtils.getBytes("https://api.ixxcc.com/cosplay.php?return=img");
     }
@@ -690,7 +612,7 @@ public class ToolLogicImpl implements ToolLogic {
                 .addFormDataPart("file", "kukuapi",
                         RequestBody.create(bytes, MediaType.parse("image/*"))).build();
         try {
-            JSONObject jsonObject = OkHttpUtils.postJson("https://api.kuku.me/tool/upload", body);
+            JSONObject jsonObject = OkHttpUtils.postJson(api + "/tool/upload", body);
             return jsonObject.getJSONObject("image").getString("url");
         } catch (IOException e) {
             e.printStackTrace();
@@ -742,7 +664,7 @@ public class ToolLogicImpl implements ToolLogic {
     public String abstractWords(String word) {
         ScriptEngine se = new ScriptEngineManager().getEngineByName("JavaScript");
         try {
-            String str = OkHttpUtils.downloadStr("https://share.kuku.me/189/kuku/chouxianghua.js");
+            String str = OkHttpUtils.downloadStr("https://vkceyugu.cdn.bspapp.com/VKCEYUGU-ba222f61-ee83-431d-bf9f-7e6216a8cf41/3a0a9684-c12e-4a6d-91e7-651f99877750.js");
             se.eval(str);
             Object o = se.eval("chouxiang(\"" + word + "\")");
             return o.toString();
@@ -818,5 +740,17 @@ public class ToolLogicImpl implements ToolLogic {
         } catch (IOException ioException) {
             return null;
         }
+    }
+
+    private JSONArray luckJson = null;
+
+    @Override
+    public JSONObject luckJson(int index){
+        if(luckJson == null){
+            InputStream is = this.getClass().getResourceAsStream("/db/luck.json");
+            byte[] bytes = IO.read(is, true);
+            luckJson = JSON.parseArray(new String(bytes, StandardCharsets.UTF_8));
+        }
+        return luckJson.getJSONObject(index-1);
     }
 }
