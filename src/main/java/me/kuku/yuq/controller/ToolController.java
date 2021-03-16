@@ -12,6 +12,7 @@ import com.icecreamqaq.yuq.annotation.PathVar;
 import com.icecreamqaq.yuq.annotation.QMsg;
 import com.icecreamqaq.yuq.controller.ContextSession;
 import com.icecreamqaq.yuq.entity.Group;
+import com.icecreamqaq.yuq.entity.Member;
 import com.icecreamqaq.yuq.job.RainInfo;
 import com.icecreamqaq.yuq.message.*;
 import me.kuku.yuq.entity.ConfigEntity;
@@ -820,4 +821,32 @@ public class ToolController {
         } else return "您错过解签了！！";
     }
 
+    @Action("丢")
+    public Message diu(Member qq, @PathVar(value = 1, type = PathVar.Type.Long) Long paramQQ){
+        String url = qq.getAvatar();
+        if (paramQQ != null){
+            url = "http://q1.qlogo.cn/g?b=qq&nk=" + paramQQ + "&s=640";
+        }
+        try {
+            byte[] bytes = toolLogic.diu(url);
+            return FunKt.getMif().imageByByteArray(bytes).toMessage();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return FunKt.getMif().at(qq).plus("图片生成失败，请重试！！");
+        }
+    }
+    @Action("爬")
+    public Message pa(Member qq, @PathVar(value = 1, type = PathVar.Type.Long) Long paramQQ){
+        String url = qq.getAvatar();
+        if (paramQQ != null){
+            url = "http://q1.qlogo.cn/g?b=qq&nk=" + paramQQ + "&s=640";
+        }
+        try {
+            byte[] bytes = toolLogic.pa(url);
+            return FunKt.getMif().imageByByteArray(bytes).toMessage();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return FunKt.getMif().at(qq).plus("图片生成失败，请重试！！");
+        }
+    }
 }

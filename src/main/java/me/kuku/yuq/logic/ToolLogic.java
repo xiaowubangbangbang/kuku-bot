@@ -61,4 +61,6 @@ public interface ToolLogic {
     String pasteUbuntu(String poster, String syntax, String content);
     byte[] girlImageGaNk();
     JSONObject luckJson(int index) throws IOException;
+    byte[] diu(String url) throws IOException;
+    byte[] pa(String url) throws IOException;
 }
