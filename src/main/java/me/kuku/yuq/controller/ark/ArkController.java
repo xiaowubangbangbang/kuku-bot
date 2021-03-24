@@ -33,6 +33,9 @@ public class ArkController {
     @QMsg(at = true)
     public String cardTen(Contact qq, String pool) {
         ArkNightsPool arkNightsPool = new ArkPools().getHashMap().get(pool);
+        if (arkNightsPool == null) {
+            return "池子不存在";
+        }
         UserRecord record = ark.getUserRecord(qq.getId(), arkNightsPool);
         List<String> list = ark.card(record, 10);
         StringBuilder sb = new StringBuilder("您的十连抽卡结果为：");

@@ -266,6 +266,95 @@ class MoonIsObscure20210120 extends ArkNightsPool {
 
 }
 
+/**
+ * 起止时间：03月18日16:00~04月01日03:59
+ * ★★★★★★：(6★出率: 2%):安洁丽娜/刻俄柏
+ * ★★★★★：普罗旺斯/絮语/拉普兰德/
+ */
+@Data
+@EqualsAndHashCode(callSuper = false)
+class Normal20210317 extends ArkNightsPool {
+    String name = "安洁丽娜";
+
+    String description() {
+        return "03月18日16:00~04月01日03:59";
+    }
+
+    @Override
+    List<String> getUpSix() {
+        return Arrays.asList("安洁丽娜", "刻俄柏");
+    }
+
+    @Override
+    List<String> upFive() {
+        return Arrays.asList("普罗旺斯", "絮语", "拉普兰德");
+    }
+
+    @Override
+    List<String> upFour() {
+        return Collections.singletonList("");
+    }
+
+    @Override
+    List<String> normalSix() {
+        return Arrays.asList("能天使", "推进之王", "伊芙利特", "艾雅法拉", "安洁丽娜", "闪灵", "夜莺", "星熊", "赛雷娅", "银灰", "斯卡蒂", "陈", "黑", "赫拉格", "麦哲伦", "莫斯提马", "煌", "阿", "刻俄柏", "风笛", "傀影", "温蒂", "早露", "铃兰", "棘刺", "森蚺", "史尔特尔", "瑕光", "泥岩", "山", "空弦", "巍峨");
+    }
+
+    @Override
+    List<String> normalFive() {
+        return Arrays.asList("白面鸮", "凛冬", "德克萨斯", "芙兰卡", "拉普兰德", "幽灵鲨", "蓝毒", "白金", "陨星", "天火", "梅尔", "赫默", "华法琳", "临光", "红", "雷蛇", "可颂", "普罗旺斯", "守林人", "崖心", "初雪", "真理", "空", "狮蝎", "食铁兽", "夜魔", "诗怀雅", "格劳克斯", "星极", "送葬人", "槐琥", "苇草", "布洛卡", "灰喉", "哞", "惊蛰", "慑砂", "巫恋", "极境", "石棉", "月禾", "莱恩哈特", "断崖", "蜜蜡", "贾维", "安哲拉", "燧石", "四月", "奥斯塔", "絮雨", "卡夫卡", "爱丽丝", "乌有");
+    }
+
+    @Override
+    List<String> normalFour() {
+        return Arrays.asList("夜烟", "远山", "杰西卡", "流星", "白雪", "清道夫", "红豆", "杜宾", "缠丸", "霜叶", "慕斯", "砾", "暗锁", "末药", "调香师", "角峰", "蛇屠箱", "古米", "深海色", "地灵", "阿消", "猎蜂", "格雷伊", "苏苏洛", "桃金娘", "红云", "梅", "安比尔", "宴", "刻刀", "波登可", "卡达", "孑", "酸糖", "芳汀", "泡泡", "杰克", "松果", "豆苗");
+    }
+}
+/**
+ * 起止时间：03月04日16:00~03月18日03:59
+ * ★★★★★★：(6★出率: 2%):史尔特尔/黑
+ * ★★★★★：雷蛇/奥斯塔/崖心
+ */
+@Data
+@EqualsAndHashCode(callSuper = false)
+class Normal20210304 extends ArkNightsPool {
+    String name = "史尔特尔";
+
+    String description() {
+        return "03月04日16:00~03月18日03:59";
+    }
+
+    @Override
+    List<String> getUpSix() {
+        return Arrays.asList("史尔特尔", "黑");
+    }
+
+    @Override
+    List<String> upFive() {
+        return Arrays.asList("崖心", "奥斯塔", "雷蛇");
+    }
+
+    @Override
+    List<String> upFour() {
+        return Collections.singletonList("");
+    }
+
+    @Override
+    List<String> normalSix() {
+        return Arrays.asList("能天使", "推进之王", "伊芙利特", "艾雅法拉", "安洁丽娜", "闪灵", "夜莺", "星熊", "赛雷娅", "银灰", "斯卡蒂", "陈", "黑", "赫拉格", "麦哲伦", "莫斯提马", "煌", "阿", "刻俄柏", "风笛", "傀影", "温蒂", "早露", "铃兰", "棘刺", "森蚺", "史尔特尔", "瑕光", "泥岩", "山", "空弦", "巍峨");
+    }
+
+    @Override
+    List<String> normalFive() {
+        return Arrays.asList("白面鸮", "凛冬", "德克萨斯", "芙兰卡", "拉普兰德", "幽灵鲨", "蓝毒", "白金", "陨星", "天火", "梅尔", "赫默", "华法琳", "临光", "红", "雷蛇", "可颂", "普罗旺斯", "守林人", "崖心", "初雪", "真理", "空", "狮蝎", "食铁兽", "夜魔", "诗怀雅", "格劳克斯", "星极", "送葬人", "槐琥", "苇草", "布洛卡", "灰喉", "哞", "惊蛰", "慑砂", "巫恋", "极境", "石棉", "月禾", "莱恩哈特", "断崖", "蜜蜡", "贾维", "安哲拉", "燧石", "四月", "奥斯塔", "絮雨", "卡夫卡", "爱丽丝", "乌有");
+    }
+
+    @Override
+    List<String> normalFour() {
+        return Arrays.asList("夜烟", "远山", "杰西卡", "流星", "白雪", "清道夫", "红豆", "杜宾", "缠丸", "霜叶", "慕斯", "砾", "暗锁", "末药", "调香师", "角峰", "蛇屠箱", "古米", "深海色", "地灵", "阿消", "猎蜂", "格雷伊", "苏苏洛", "桃金娘", "红云", "梅", "安比尔", "宴", "刻刀", "波登可", "卡达", "孑", "酸糖", "芳汀", "泡泡", "杰克", "松果", "豆苗");
+    }
+}
+
 @Getter
 class ArkPools {
     private final Map<String, ArkNightsPool> hashMap = new HashMap<>();
@@ -280,7 +369,7 @@ class ArkPools {
     }
 
     public ArkPools() {
-        register(new NormalPool(), new ArkPool20201112(), new JoinAction20201122(), new MoonIsObscure20210120());
+        register(new NormalPool(), new ArkPool20201112(), new JoinAction20201122(), new MoonIsObscure20210120(), new Normal20210317(),new Normal20210304());
     }
 
     private void register(ArkNightsPool... arkPools) {

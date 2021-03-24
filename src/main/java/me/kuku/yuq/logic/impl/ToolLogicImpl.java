@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import me.kuku.yuq.dao.LoLiConDao;
+import me.kuku.yuq.entity.LoLiConEntity;
 import me.kuku.yuq.logic.ToolLogic;
 import me.kuku.yuq.pojo.CodeType;
 import me.kuku.yuq.pojo.Result;
@@ -380,6 +381,8 @@ public class ToolLogicImpl implements ToolLogic {
                 map.put("title", dataJsonObject.getString("title"));
                 map.put("pid", dataJsonObject.getString("pid"));
                 map.put("uid", dataJsonObject.getString("uid"));
+                //保存lolicon涩图
+                loLiConDao.save(LoLiConEntity.builder().title(map.get("title")).pid(map.get("pid")).uid(map.get("uid")).url(map.get("url")).type(isR18 ? "loliconR18" : "lolicon").build());
                 return Result.success(map);
             case 401:
                 return Result.failure("APIKEY 不存在或被封禁", null);
@@ -392,7 +395,8 @@ public class ToolLogicImpl implements ToolLogic {
 
     @Override
     public byte[] piXivPicProxy(String url) throws IOException {
-        return OkHttpUtils.getBytes(api + "/pixiv/picbyurl?url=" + URLEncoder.encode(url, "utf-8"));
+        return OkHttpUtils.getBytes(url);
+        //return OkHttpUtils.getBytes(api + "/pixiv/picbyurl?url=" + URLEncoder.encode(url, "utf-8"));
     }
 
     @Override
