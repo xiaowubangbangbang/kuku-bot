@@ -73,6 +73,7 @@ public class GroupEntity {
     private Boolean voiceIdentify;
     private Boolean uploadPicNotice;
     private Boolean groupAdminAuth;
+    private Boolean kickWithoutSpeaking;
 
     public GroupEntity(Long group){
         this.group = group;
@@ -92,6 +93,7 @@ public class GroupEntity {
         this.voiceIdentify = false;
         this.uploadPicNotice = false;
         this.groupAdminAuth = false;
+        this.kickWithoutSpeaking = false;
     }
 
     public JSONArray getBlackJsonArray(){
