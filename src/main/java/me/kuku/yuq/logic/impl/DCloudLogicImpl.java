@@ -11,12 +11,11 @@ import me.kuku.yuq.pojo.UA;
 import me.kuku.yuq.service.ConfigService;
 import me.kuku.yuq.utils.BotUtils;
 import me.kuku.yuq.utils.OkHttpUtils;
-import okhttp3.MediaType;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
@@ -57,7 +56,7 @@ public class DCloudLogicImpl implements DCloudLogic {
 	}
 
 	@Override
-	public Result<String> upload(DCloudPojo dCloudPojo, String spaceId, String name, byte[] bytes) {
+	public Result<String> upload(DCloudPojo dCloudPojo, String spaceId, String name, InputStream is, Integer size) {
 		JSONObject jsonObject;
 		Map<String, String> map = new HashMap<>();
 		map.put("token", dCloudPojo.getToken());
@@ -65,9 +64,10 @@ public class DCloudLogicImpl implements DCloudLogic {
 		map.put("user-agent", UA.PC.getValue());
 		map.put("referer", "https://unicloud.dcloud.net.cn/cloud-storage?platform=aliyun&appid=");
 		try {
+			if (size == null) size = is.available();
 			jsonObject = OkHttpUtils.getJson("https://unicloud.dcloud.net.cn/unicloud/api/file/upload-info?spaceId=" +
 					spaceId + "&appid=&provider=aliyun&name=" + URLEncoder.encode(name, "utf-8") +"&size=" +
-					bytes.length, map);
+					size, map);
 		} catch (Exception e) {
 			return Result.failure(502, "cookie失效，上传失败！！");
 		}
@@ -77,7 +77,7 @@ public class DCloudLogicImpl implements DCloudLogic {
 			String fileId = dataJsonObject.getString("Id");
 			Response response;
 			try {
-				response = OkHttpUtils.put(signUrl, RequestBody.create(bytes, MediaType.parse("application/octet-stream")),
+				response = OkHttpUtils.put(signUrl, OkHttpUtils.getStreamBody(is),
 						OkHttpUtils.addHeaders(null, "https://unicloud.dcloud.net.cn/", UA.PC));
 				response.close();
 				if (response.code() == 200){

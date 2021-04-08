@@ -12,3 +12,4 @@
 /conf/
 /cache/servers.json
 /cache/session.bin
+/out/

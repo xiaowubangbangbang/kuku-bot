@@ -29,12 +29,12 @@ import me.kuku.yuq.controller.qqlogin.BindQQController;
 import me.kuku.yuq.controller.qqlogin.QQJobController;
 import me.kuku.yuq.controller.qqlogin.QQLoginController;
 import me.kuku.yuq.controller.qqlogin.QQQuickLoginController;
-import me.kuku.yuq.controller.warframe.WarframeController;
 import me.kuku.yuq.entity.QQLoginEntity;
 import me.kuku.yuq.pojo.UA;
 import okhttp3.Cookie;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.util.*;
@@ -45,22 +45,33 @@ import java.util.regex.Pattern;
 @SuppressWarnings("UnusedReturnValue")
 public class BotUtils {
 
+    private static final Map<String, Pattern> patternMap = new HashMap<>();
+
     public static String shortUrl(String url){
         // http://www.uc4.cn/
         try {
             if (!url.startsWith("http") && !url.startsWith("https")) url = "http://" + url;
-            JSONObject jsonObject = OkHttpUtils.getJson("http://uc4.cn/ajax.php?act=creat1&url=" +
-                    URLEncoder.encode(url, "utf-8") + "&pattern=1&type=a6bcn&id=", OkHttpUtils.addUA(UA.PC));
-            if (jsonObject.getInteger("code") == 0){
-                return jsonObject.getString("dwz");
+            Map<String, String> map = new HashMap<>();
+            map.put("i", "1");
+            map.put("url", url);
+            JSONObject jsonObject = OkHttpUtils.postJson("https://dwz.ng/api.php", map);
+            if (jsonObject.getInteger("code") == 1){
+                return jsonObject.getString("url");
             }else return url;
-        } catch (IOException e) {
+        } catch (Exception e) {
             return url;
         }
     }
 
     public static String regex(String regex, String text){
-        Matcher matcher = Pattern.compile(regex).matcher(text);
+        Pattern pattern;
+        if (patternMap.containsKey(regex))
+            pattern = patternMap.get(regex);
+        else {
+            pattern = Pattern.compile(regex);
+            patternMap.put(regex, pattern);
+        }
+        Matcher matcher = pattern.matcher(text);
         if (matcher.find()){
             return matcher.group();
         }
@@ -184,10 +195,14 @@ public class BotUtils {
                     msg.plus(mif.jsonEx(aJsonObject.getString("content")));
                     break;
                 case "voice":
+                    InputStream is = null;
                     try {
-                        msg.plus(mif.voiceByByteArray(OkHttpUtils.getBytes(aJsonObject.getString("content"))));
+                        is = OkHttpUtils.getByteStream(aJsonObject.getString("content"));
+                        msg.plus(mif.voiceByInputStream(is));
                     } catch (IOException e) {
                         e.printStackTrace();
+                    } finally {
+                        IOUtils.close(is);
                     }
                     break;
             }
@@ -275,7 +290,7 @@ public class BotUtils {
                 ManageAdminController.class, ManageNotController.class, ManageOwnerController.class, ManageSuperAdminController.class,
                 BindStepController.class, MotionController.class, BindNeTeaseController.class, NeTeaseController.class,
                 BindQQController.class, QQJobController.class, QQLoginController.class, QQQuickLoginController.class,
-                WarframeController.class, ArkNightsController.class, BotController.class, MenuController.class,
+                ArkNightsController.class, BotController.class, MenuController.class,
                 MyQQController.class, ArkNightsLoginController.class, SettingController.class, ToolController.class, ToolController.class);
         for (int i = 0; i < list.size(); i++){
             String str = list.get(i);
