@@ -3,6 +3,7 @@ package me.kuku.yuq.controller;
 import com.IceCreamQAQ.Yu.annotation.Action;
 import com.IceCreamQAQ.Yu.annotation.Config;
 import com.IceCreamQAQ.Yu.annotation.Synonym;
+import com.IceCreamQAQ.Yu.util.IO;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.icecreamqaq.yuq.FunKt;
@@ -33,18 +34,12 @@ import oshi.hardware.GlobalMemory;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URLEncoder;
 import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -56,8 +51,6 @@ public class ToolController {
     private ToolLogic toolLogic;
     @Inject
     private GroupService groupService;
-    @Inject
-    private AILogic qqAILogic;
     @Inject
     @Named("baiduAILogic")
     private AILogic baiduAILogic;
@@ -74,8 +67,6 @@ public class ToolController {
     @Config("YuQ.Mirai.protocol")
     private String protocol;
     @Inject
-    private TeambitionLogic teambitionLogic;
-    @Inject
     private DCloudLogic dCloudLogic;
     Long recallTime = 0L;
     @Config("YuQ.Mirai.bot.master")
@@ -86,7 +77,7 @@ public class ToolController {
     private final LocalDateTime startTime;
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(4);
 
-    public ToolController() {
+    public ToolController(){
         startTime = LocalDateTime.now();
     }
 
@@ -158,9 +149,17 @@ public class ToolController {
     }
 
     @Action("ip/{params}")
-    @QMsg(at = true)
+    @QMsg(at = true, atNewLine = true)
     public String queryIp(String params) throws IOException {
-        return toolLogic.queryIp(params);
+        Result<List<Map<String, String>>> result = toolLogic.queryIp(params);
+        if (result.isSuccess()){
+            List<Map<String, String>> list = result.getData();
+            StringBuilder sb = new StringBuilder();
+            list.forEach(map ->
+                    sb.append(map.get("ip")).append("->").append(map.get("address")).append("\n")
+            );
+            return BotUtils.removeLastLine(sb);
+        }else return "查询IP地址失败！";
     }
 
     @Action("whois/{params}")
@@ -366,8 +365,15 @@ public class ToolController {
     }
 
     @Action("几点了")
-    public Image time() throws IOException {
-        return FunKt.getMif().imageByInputStream(new ByteArrayInputStream(toolLogic.queryTime()));
+    public Message time(long qq) throws IOException {
+        String name = DateTimeFormatterUtils.formatNow("HH-mm") + ".jpg";
+        String hour = name.split("-")[0];
+        File file = new File("time" + File.separator + hour + File.separator + name);
+        if (file.exists()){
+            return FunKt.getMif().imageByByteArray(IO.read(new FileInputStream(file), true)).toMessage();
+        }else {
+            return FunKt.getMif().at(qq).plus("请下载时间的压缩包：https://api.kuku.me/tb/pan/kuku/kuku-bot/time.zip，解压至程序根目录");
+        }
     }
 
     @Action("\\^BV.*\\")
@@ -438,12 +444,10 @@ public class ToolController {
 
     @Action("语音合成 {text}")
     public Message voice(String text, Group group, long qq) throws IOException {
-        Result<byte[]> result = qqAILogic.voiceSynthesis(text);
-        if (result.getCode() == 200) {
+        Result<byte[]> result = baiduAILogic.voiceSynthesis(text);
+        if (result.getCode() == 200){
             return FunKt.getMif().voiceByByteArray(result.getData()).toMessage();
-        } else {
-            return FunKt.getMif().at(qq).plus(result.getMessage());
-        }
+        }else return FunKt.getMif().at(qq).plus(result.getMessage());
     }
 
     @Action("点歌 {name}")
@@ -706,7 +710,4 @@ public class ToolController {
         return FunKt.getMif().imageByUrl("https://api.a1827.workers.dev/api.php");
     }
 
-    public static void main(String[] args) {
-
-    }
 }

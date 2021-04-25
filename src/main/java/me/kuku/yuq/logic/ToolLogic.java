@@ -32,7 +32,6 @@ public interface ToolLogic {
     String convertZh(String content, Integer type) throws IOException;
     String convertTranslate(String content, String from, String to) throws IOException;
     String parseVideo(String url) throws IOException;
-    String restoreShortUrl(String url) throws IOException;
     Result<String> weather(String local, String cookie) throws IOException;
     String ping(String domain) throws IOException;
     Result<Map<String, String>> colorPicByLoLiCon(String apiKey, boolean isR18, boolean isProxy) throws IOException;

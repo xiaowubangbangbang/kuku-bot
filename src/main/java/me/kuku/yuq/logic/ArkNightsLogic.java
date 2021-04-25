@@ -16,5 +16,4 @@ public interface ArkNightsLogic {
 	Result<List<Map<String, String>>> searchRecord(String cookie, Integer page) throws IOException;
 	Result<List<Map<String, String>>> sourceRecord(String cookie, Integer page) throws IOException;
 
-	Result<List<Map<String, String>>> celebrationSign(String cookie) throws IOException;
 }
