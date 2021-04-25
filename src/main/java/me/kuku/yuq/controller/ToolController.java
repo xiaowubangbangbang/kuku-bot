@@ -3,7 +3,6 @@ package me.kuku.yuq.controller;
 import com.IceCreamQAQ.Yu.annotation.Action;
 import com.IceCreamQAQ.Yu.annotation.Config;
 import com.IceCreamQAQ.Yu.annotation.Synonym;
-import com.IceCreamQAQ.Yu.util.IO;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.icecreamqaq.yuq.FunKt;
@@ -18,15 +17,16 @@ import com.icecreamqaq.yuq.message.*;
 import me.kuku.yuq.entity.ConfigEntity;
 import me.kuku.yuq.entity.GroupEntity;
 import me.kuku.yuq.logic.*;
-import me.kuku.yuq.pojo.*;
+import me.kuku.yuq.pojo.CodeType;
+import me.kuku.yuq.pojo.ConfigType;
+import me.kuku.yuq.pojo.DCloudPojo;
+import me.kuku.yuq.pojo.Result;
 import me.kuku.yuq.service.ConfigService;
 import me.kuku.yuq.service.GroupService;
 import me.kuku.yuq.service.MessageService;
-import me.kuku.yuq.utils.BotUtils;
-import me.kuku.yuq.utils.ExecutorUtils;
-import me.kuku.yuq.utils.Jrrp;
-import me.kuku.yuq.utils.OkHttpUtils;
+import me.kuku.yuq.utils.*;
 import okhttp3.Response;
+import org.smartboot.http.utils.StringUtils;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
@@ -35,14 +35,16 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -151,7 +153,7 @@ public class ToolController {
 
     @Action("缩短/{params}")
     @QMsg(at = true)
-    public String shortUrl(String params){
+    public String shortUrl(String params) {
         return BotUtils.shortUrl(params);
     }
 
@@ -191,11 +193,11 @@ public class ToolController {
         return toolLogic.convertPinYin(params);
     }
 
-    @QMsg(at = true, atNewLine = true)
-    @Action("笑话")
-    public String jokes() throws IOException {
-        return toolLogic.jokes();
-    }
+//    @QMsg(at = true, atNewLine = true)
+//    @Action("笑话")
+//    public String jokes() throws IOException {
+//        return toolLogic.jokes();
+//    }
 
     @QMsg(at = true, atNewLine = true)
     @Action("垃圾/{params}")
@@ -239,10 +241,10 @@ public class ToolController {
     }
 
     @Action("色图")
-    @Synonym({"色图十连", "色图{numStr}连"})
-    public void colorPic(Group group, long qq, @PathVar(0) String command, String numStr) {
+    @Synonym({"涩图来", "涩图", "来份涩图"})
+    public void colorPic(Group group, long qq) {
         GroupEntity groupEntity = groupService.findByGroup(group.getId());
-        if (groupEntity == null || groupEntity.getColorPic() == null || !groupEntity.getColorPic()) {
+        if (groupEntity == null || groupEntity.getColorPic() == null || Boolean.FALSE.equals(groupEntity.getColorPic())) {
             group.sendMessage(FunKt.getMif().at(qq).plus("该功能已关闭！！"));
             return;
         }
@@ -333,20 +335,6 @@ public class ToolController {
         });
     }
 
-    @Action("qr/{content}")
-    @QMsg(at = true, atNewLine = true)
-    public Message creatQrCode(String content) {
-        InputStream is = null;
-        try {
-            is = toolLogic.creatQr(content);
-            return FunKt.getMif().imageByInputStream(is).toMessage();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        } finally {
-            IOUtils.close(is);
-        }
-    }
 
     @Action("看美女")
     public Image girl() throws IOException {
@@ -357,9 +345,11 @@ public class ToolController {
     @Action("蓝奏 {url}")
     public String lanZou(String url, @PathVar(2) String pwd) throws UnsupportedEncodingException {
         String resultUrl;
-        if (pwd == null)
+        if (pwd == null) {
             resultUrl = "https://v1.alapi.cn/api/lanzou?url=" + URLEncoder.encode(url, "utf-8");
-        else resultUrl = "https://v1.alapi.cn/api/lanzou?url=" + URLEncoder.encode(url, "utf-8") + "&pwd=" + pwd;
+        } else {
+            resultUrl = "https://v1.alapi.cn/api/lanzou?url=" + URLEncoder.encode(url, "utf-8") + "&pwd=" + pwd;
+        }
         return BotUtils.shortUrl(resultUrl);
     }
 
@@ -386,7 +376,7 @@ public class ToolController {
     public Message bvToAv(Message message) throws IOException {
         String bv = message.getBody().get(0).toPath();
         Result<Map<String, String>> result = toolLogic.bvToAv(bv);
-        if (result.getCode() == 200){
+        if (result.getCode() == 200) {
             Map<String, String> map = result.getData();
             MessageItemFactory mif = FunKt.getMif();
             return mif.imageByUrl(map.get("pic")).plus(
@@ -394,7 +384,9 @@ public class ToolController {
                             "描述：" + map.get("desc") +
                             "链接：" + map.get("url")
             );
-        }else return Message.Companion.toMessage(result.getMessage());
+        } else {
+            return Message.Companion.toMessage(result.getMessage());
+        }
     }
 
     @Action("分词")
@@ -414,10 +406,15 @@ public class ToolController {
     @QMsg(at = true)
     public Message searchImage(Image img) throws IOException {
         ConfigEntity configEntity = configService.findByType(ConfigType.SauceNao.getType());
-        if (configEntity == null) return BotUtils.toMessage("机器人没有配置搜图（sauceNao）的apikey，无法搜图！！");
+        if (configEntity == null) {
+            return BotUtils.toMessage("机器人没有配置搜图（sauceNao）的apikey，无法搜图！！");
+        }
         String url = toolLogic.sauceNaoIdentifyPic(configEntity.getContent(), img.getUrl());
-        if (url != null) return FunKt.getMif().imageByUrl(img.getUrl()).plus(url);
-        else return Message.Companion.toMessage("没有找到这张图片！！！");
+        if (url != null) {
+            return FunKt.getMif().imageByUrl(img.getUrl()).plus(url);
+        } else {
+            return Message.Companion.toMessage("没有找到这张图片！！！");
+        }
     }
 
     @Action("OCR {img}")
@@ -428,10 +425,10 @@ public class ToolController {
     }
 
     @Action("查发言数")
-    public String queryMessage(Group group){
+    public String queryMessage(Group group) {
         Map<Long, Long> map = messageService.findCountQQByGroupAndToday(group.getId());
         StringBuilder sb = new StringBuilder().append("本群今日发言数统计如下：").append("\n");
-        for (Map.Entry<Long, Long> entry: map.entrySet()){
+        for (Map.Entry<Long, Long> entry : map.entrySet()) {
             sb.append("@").append(group.get(entry.getKey()).nameCardOrName())
                     .append("（").append(entry.getKey()).append("）").append("：")
                     .append(entry.getValue()).append("条").append("\n");
@@ -442,9 +439,11 @@ public class ToolController {
     @Action("语音合成 {text}")
     public Message voice(String text, Group group, long qq) throws IOException {
         Result<byte[]> result = qqAILogic.voiceSynthesis(text);
-        if (result.getCode() == 200){
+        if (result.getCode() == 200) {
             return FunKt.getMif().voiceByByteArray(result.getData()).toMessage();
-        }else return FunKt.getMif().at(qq).plus(result.getMessage());
+        } else {
+            return FunKt.getMif().at(qq).plus(result.getMessage());
+        }
     }
 
     @Action("点歌 {name}")
@@ -461,7 +460,7 @@ public class ToolController {
 
     @Action("统计")
     @Synonym({"运行状态"})
-    public String status(){
+    public String status() {
         SystemInfo systemInfo = new SystemInfo();
         CentralProcessor processor = systemInfo.getHardware().getProcessor();
         long[] prevTicks = processor.getSystemCpuLoadTicks();
@@ -508,20 +507,20 @@ public class ToolController {
         long hours = duration.toHours() % 24;
         long minutes = duration.toMinutes() % 60;
         String ss = days + "天" + hours + "小时" + minutes + "分钟";
-        return  "程序运行时长：" + ss + "\n" +
+        return "程序运行时长：" + ss + "\n" +
                 "cpu核数：" + processor.getLogicalProcessorCount() + "\n" +
-                "cpu当前使用率：" + new DecimalFormat("#.##%").format(1.0-(idle * 1.0 / totalCpu)) + "\n" +
+                "cpu当前使用率：" + new DecimalFormat("#.##%").format(1.0 - (idle * 1.0 / totalCpu)) + "\n" +
                 "总内存：" + formatByte(totalByte) + "\n" +
-                "已使用内存：" + formatByte(totalByte-acaliableByte) + "\n" +
+                "已使用内存：" + formatByte(totalByte - acaliableByte) + "\n" +
                 "操作系统：" + osName + "\n" +
                 "系统架构：" + osArch + "\n" +
                 "jvm内存总量：" + formatByte(jvmTotalMemoryByte) + "\n" +
-                "jvm已使用内存：" + formatByte(jvmTotalMemoryByte-freeMemoryByte) + "\n" +
+                "jvm已使用内存：" + formatByte(jvmTotalMemoryByte - freeMemoryByte) + "\n" +
                 "java版本：" + jdkVersion;
     }
 
     @Action("消息统计")
-    public String message(){
+    public String message() {
         return "当前收发消息状态：\n" +
                 "收：" + rainInfo.getCountRm() + " / 分钟\n" +
                 "发：" + rainInfo.getCountSm() + " / 分钟\n" +
@@ -530,77 +529,54 @@ public class ToolController {
                 "发：" + rainInfo.getCountSa() + " 条。";
     }
 
-    private String formatByte(long byteNumber){
+    private String formatByte(long byteNumber) {
         //换算单位
         double FORMAT = 1024.0;
-        double kbNumber = byteNumber/FORMAT;
-        if(kbNumber<FORMAT){
+        double kbNumber = byteNumber / FORMAT;
+        if (kbNumber < FORMAT) {
             return new DecimalFormat("#.##KB").format(kbNumber);
         }
-        double mbNumber = kbNumber/FORMAT;
-        if(mbNumber<FORMAT){
+        double mbNumber = kbNumber / FORMAT;
+        if (mbNumber < FORMAT) {
             return new DecimalFormat("#.##MB").format(mbNumber);
         }
-        double gbNumber = mbNumber/FORMAT;
-        if(gbNumber<FORMAT){
+        double gbNumber = mbNumber / FORMAT;
+        if (gbNumber < FORMAT) {
             return new DecimalFormat("#.##GB").format(gbNumber);
         }
-        double tbNumber = gbNumber/FORMAT;
+        double tbNumber = gbNumber / FORMAT;
         return new DecimalFormat("#.##TB").format(tbNumber);
     }
 
-    @Action("写真")
-    public Image photo() throws IOException {
-        return FunKt.getMif().imageByByteArray(toolLogic.photo());
-    }
-
-    @Action("kuku上传")
-    @QMsg(at = true)
-    public String uploadImage(Message message, ContextSession session, Group group, long qq) {
-        group.sendMessage(FunKt.getMif().at(qq).plus("请发送需要上传的图片"));
-        Message imageMessage = session.waitNextMessage();
-        StringBuilder sb = new StringBuilder().append("您上传的图片链接如下：");
-        int i = 1;
-        for (MessageItem item : imageMessage.getBody()) {
-            if (item instanceof Image) {
-                sb.append(i++).append("、");
-                try {
-                    sb.append(toolLogic.uploadImage(OkHttpUtils.getByteStream(((Image) item).getUrl())))
-                        .append("\n");
-                } catch (IOException e) {
-                    sb.append("图片上传失败，请稍后再试！！").append("\b");
-                }
-            }
-        }
-        return BotUtils.removeLastLine(sb);
-    }
 
     @Action("抽象话 {word}")
     @QMsg(at = true)
-    public String abstractWords(String word){
+    public String abstractWords(String word) {
         return "抽象话如下：\n" + toolLogic.abstractWords(word);
     }
 
     @Action("窥屏检测")
-    public void checkPeeping(Group group){
+    public void checkPeeping(Group group) {
         String random = BotUtils.randomNum(4);
         group.sendMessage(FunKt.getMif().jsonEx("{\"app\":\"com.tencent.miniapp\",\"desc\":\"\",\"view\":\"notification\",\"ver\":\"1.0.0.11\",\"prompt\":\"QQ程序\",\"appID\":\"\",\"sourceName\":\"\",\"actionData\":\"\",\"actionData_A\":\"\",\"sourceUrl\":\"\",\"meta\":{\"notification\":{\"appInfo\":{\"appName\":\"三楼有只猫\",\"appType\":4,\"appid\":1109659848,\"iconUrl\":\"" + api + "\\/tool\\/peeping\\/check\\/" + random + "\"},\"button\":[],\"data\":[],\"emphasis_keyword\":\"\",\"title\":\"请等待15s\"}},\"text\":\"\",\"extraApps\":[],\"sourceAd\":\"\",\"extra\":\"\"}").toMessage());
         executorService.schedule(() -> {
             String msg;
             try {
                 JSONObject jsonObject = OkHttpUtils.getJson(api + "/tool/peeping/result/" + random);
-                if (jsonObject.getInteger("code") == 200){
+                if (jsonObject.getInteger("code") == 200) {
                     StringBuilder sb = new StringBuilder();
                     JSONArray jsonArray = jsonObject.getJSONObject("data").getJSONArray("list");
                     sb.append("检测到共有").append(jsonArray.size()).append("位小伙伴在窥屏").append("\n");
-                    for (int i = 0; i < jsonArray.size(); i++){
+                    for (int i = 0; i < jsonArray.size(); i++) {
                         JSONObject singleJsonObject = jsonArray.getJSONObject(i);
                         sb.append(singleJsonObject.getString("ip"))
                                 .append("-").append(singleJsonObject.getString("address"))
                                 /*.append("-").append(singleJsonObject.getString("simpleUserAgent"))*/.append("\n");
                     }
                     msg = BotUtils.removeLastLine(sb);
-                }else msg = jsonObject.getString("message");
+                } else {
+                    msg = jsonObject.getString("message");
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 msg = "查询失败，请重试！！";
@@ -613,7 +589,9 @@ public class ToolController {
     @QMsg(at = true, atNewLine = true)
     public String codeExecute(ContextSession session, Group group, long qq, String type) throws IOException {
         CodeType codeType = CodeType.parse(type);
-        if (codeType == null) return "没有找到这个语言类型！！";
+        if (codeType == null) {
+            return "没有找到这个语言类型！！";
+        }
         group.sendMessage(FunKt.getMif().at(qq).plus("请输入代码！！"));
         Message message = session.waitNextMessage();
         String code = Message.Companion.firstString(message);
@@ -622,9 +600,11 @@ public class ToolController {
 
     @Action("dcloud上传")
     @QMsg(at = true, atNewLine = true)
-    public String dCloudUpload(Group group, long qq, ContextSession session){
+    public String dCloudUpload(Group group, long qq, ContextSession session) {
         ConfigEntity configEntity = configService.findByType(ConfigType.DCloud.getType());
-        if (configEntity == null) return "机器人还没有配置dCloud，请联系机器人主人进行配置。";
+        if (configEntity == null) {
+            return "机器人还没有配置dCloud，请联系机器人主人进行配置。";
+        }
         JSONObject jsonObject = configEntity.getContentJsonObject();
         group.sendMessage(FunKt.getMif().at(qq).plus("请发送需要上传的图片"));
         Message imageMessage = session.waitNextMessage();
@@ -644,19 +624,23 @@ public class ToolController {
                     is = OkHttpUtils.getByteStream(response);
                     long size = Objects.requireNonNull(response.body()).contentLength();
                     Result<String> result = dCloudLogic.upload(dCloudPojo, spaceId, id, is, Math.toIntExact(size));
-                    if (result.getCode() == 502){
+                    if (result.getCode() == 502) {
                         Result<DCloudPojo> reResult = dCloudLogic.reLogin();
-                        if (reResult.isFailure()) return "cookie失效，尝试重新登录，登录失败。" + reResult.getMessage();
-                        else {
+                        if (reResult.isFailure()) {
+                            return "cookie失效，尝试重新登录，登录失败。" + reResult.getMessage();
+                        } else {
                             dCloudPojo = reResult.getData();
                             result = dCloudLogic.upload(dCloudPojo, spaceId, id, OkHttpUtils.getBytes(url));
                         }
                     }
-                    if (result.isFailure()) sb.append(result.getMessage()).append("\n");
-                    else sb.append(result.getData()).append("\n");
+                    if (result.isFailure()) {
+                        sb.append(result.getMessage()).append("\n");
+                    } else {
+                        sb.append(result.getData()).append("\n");
+                    }
                 } catch (IOException e) {
                     sb.append("网络出现异常，上传失败").append("\n");
-                }finally {
+                } finally {
                     IOUtils.close(is);
                 }
             }
@@ -665,13 +649,14 @@ public class ToolController {
     }
 
     @Action("妹子图")
-    public Object girlImage(long qq){
+    public Object girlImage(long qq) {
         byte[] bytes = toolLogic.girlImageGaNk();
-        if (bytes != null){
+        if (bytes != null) {
             return FunKt.getMif().imageByByteArray(bytes);
-        }else return FunKt.getMif().at(qq).plus("图片获取失败，请重试！！");
+        } else {
+            return FunKt.getMif().at(qq).plus("图片获取失败，请重试！！");
+        }
     }
-
 
 
     @Action("抽签")
@@ -679,19 +664,21 @@ public class ToolController {
     public String random(long qq, Group group, ContextSession session) throws IOException {
         int num = Jrrp.get(qq);
         JSONObject jsonObject = toolLogic.luckJson(num);
-        group.sendMessage(FunKt.getMif().at(qq).plus("今日运势：\n"+ jsonObject.getJSONObject("fields").getString("texk_key") +"\n发送解签查看详解"));
+        group.sendMessage(FunKt.getMif().at(qq).plus("今日运势：\n" + jsonObject.getJSONObject("fields").getString("texk_key") + "\n发送解签查看详解"));
         Message nextMessage = session.waitNextMessage();
         String ss = BotUtils.firstString(nextMessage);
-        if (ss.equals("解签")){
+        if ("解签".equals(ss)) {
             return jsonObject.getJSONObject("fields").getString("text") + "\n凶签也不必气馁。人生势必起伏。";
-        }else return "您错过解签了！！";
+        } else {
+            return "您错过解签了！！";
+        }
     }
 
     @Action("丢")
     @Synonym({"爬"})
-    public Message diu(Member qq, @PathVar(1) String paramQQ, @PathVar(0) String type){
+    public Message diu(Member qq, @PathVar(1) String paramQQ, @PathVar(0) String type) {
         String url = qq.getAvatar();
-        if (paramQQ != null){
+        if (paramQQ != null) {
             if (!paramQQ.matches("^[0-9][0-9]*[0-9]$"))
                 return FunKt.getMif().at(qq).plus("您输入的不为qq号，请重试！！");
             url = "http://q1.qlogo.cn/g?b=qq&nk=" + paramQQ + "&s=640";
@@ -700,21 +687,18 @@ public class ToolController {
         if ("丢".equals(type))
             bytes = toolLogic.diu(url);
         else bytes = toolLogic.pa(url);
-        if (bytes == null)  return FunKt.getMif().at(qq).plus("图片生成失败，请重试！！");
+        if (bytes == null) return FunKt.getMif().at(qq).plus("图片生成失败，请重试！！");
         return FunKt.getMif().imageByByteArray(bytes).toMessage();
     }
 
-    @Action("读懂世界")
-    public Image readTheWorld(){
-        InputStream is;
-        try {
-            is = toolLogic.readTheWorld();
-            return FunKt.getMif().imageByInputStream(is);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return FunKt.getMif().at(qq).plus("图片生成失败，请重试！！");
+    //@Action("\\.*\\")
+    public String readMessage(@PathVar(0) String str) throws IOException {
+        if (StringUtils.isBlank(str) || "图片".equals(str) || str.contains("表情_")) {
+            return null;
         }
+        return new Random().nextInt(100) > 95 ? toolLogic.qinYunKeChat(str) : null;
     }
+
 
     @Action("cosplay")
     @Synonym({"cosplay"})
@@ -722,4 +706,7 @@ public class ToolController {
         return FunKt.getMif().imageByUrl("https://api.a1827.workers.dev/api.php");
     }
 
+    public static void main(String[] args) {
+
+    }
 }
