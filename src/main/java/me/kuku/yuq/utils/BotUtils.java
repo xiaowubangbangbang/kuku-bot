@@ -10,33 +10,12 @@ import com.icecreamqaq.yuq.FunKt;
 import com.icecreamqaq.yuq.message.*;
 import com.icecreamqaq.yuq.mirai.MiraiBot;
 import com.icecreamqaq.yuq.mirai.message.ImageReceive;
-import me.kuku.yuq.controller.*;
-import me.kuku.yuq.controller.arknights.ArkNightsController;
-import me.kuku.yuq.controller.arknights.ArkNightsLoginController;
-import me.kuku.yuq.controller.bilibili.BiliBiliController;
-import me.kuku.yuq.controller.bilibili.BiliBiliLoginController;
-import me.kuku.yuq.controller.hostloc.HostLocController;
-import me.kuku.yuq.controller.hostloc.HostLocLoginController;
-import me.kuku.yuq.controller.manage.ManageAdminController;
-import me.kuku.yuq.controller.manage.ManageNotController;
-import me.kuku.yuq.controller.manage.ManageOwnerController;
-import me.kuku.yuq.controller.manage.ManageSuperAdminController;
-import me.kuku.yuq.controller.motion.BindStepController;
-import me.kuku.yuq.controller.motion.MotionController;
-import me.kuku.yuq.controller.netease.BindNeTeaseController;
-import me.kuku.yuq.controller.netease.NeTeaseController;
-import me.kuku.yuq.controller.qqlogin.BindQQController;
-import me.kuku.yuq.controller.qqlogin.QQJobController;
-import me.kuku.yuq.controller.qqlogin.QQLoginController;
-import me.kuku.yuq.controller.qqlogin.QQQuickLoginController;
 import me.kuku.yuq.entity.QQLoginEntity;
-import me.kuku.yuq.pojo.UA;
 import okhttp3.Cookie;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
-import java.net.URLEncoder;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -112,22 +91,6 @@ public class BotUtils {
         return ((int) (Math.random() * max)) % (max - min + 1) + min;
     }
 
-    public static QQLoginEntity toQQLoginEntity(OkHttpWebImpl web, MiraiBot miraiBot){
-        try {
-            ConcurrentHashMap<String, Map<String, Cookie>> map = web.getDomainMap();
-            Map<String, Cookie> qunMap = map.get("qun.qq.com");
-            String groupPsKey = qunMap.get("p_skey").value();
-            Map<String, Cookie> qqMap = map.get("qq.com");
-            String sKey = qqMap.get("skey").value();
-            Map<String, Cookie> qZoneMap = map.get("qzone.qq.com");
-            String psKey = qZoneMap.get("p_skey").value();
-            return new QQLoginEntity(null, FunKt.getYuq().getBotId(), 0L, "", sKey, psKey, groupPsKey, miraiBot.superKey,
-                    QQUtils.getToken(miraiBot.superKey).toString(), null, true);
-        }catch (Exception e){
-            return new QQLoginEntity();
-        }
-    }
-
     public static JSONArray messageToJsonArray(Message rm){
         if (rm == null) return null;
         ArrayList<MessageItem> body = rm.getBody();
@@ -195,14 +158,11 @@ public class BotUtils {
                     msg.plus(mif.jsonEx(aJsonObject.getString("content")));
                     break;
                 case "voice":
-                    InputStream is = null;
                     try {
-                        is = OkHttpUtils.getByteStream(aJsonObject.getString("content"));
-                        msg.plus(mif.voiceByInputStream(is));
+                        byte[] bytes = OkHttpUtils.getBytes(aJsonObject.getString("content"));
+                        msg.plus(mif.voiceByByteArray(bytes));
                     } catch (IOException e) {
                         e.printStackTrace();
-                    } finally {
-                        IOUtils.close(is);
                     }
                     break;
             }
@@ -286,12 +246,7 @@ public class BotUtils {
     }
 
     public static List<String> allCommand(){
-        List<String> list = menu(BiliBiliController.class, BiliBiliLoginController.class, HostLocController.class, HostLocLoginController.class,
-                ManageAdminController.class, ManageNotController.class, ManageOwnerController.class, ManageSuperAdminController.class,
-                BindStepController.class, MotionController.class, BindNeTeaseController.class, NeTeaseController.class,
-                BindQQController.class, QQJobController.class, QQLoginController.class, QQQuickLoginController.class,
-                ArkNightsController.class, BotController.class, MenuController.class,
-                MyQQController.class, ArkNightsLoginController.class, SettingController.class, ToolController.class, ToolController.class);
+        List<String> list = menu();
         for (int i = 0; i < list.size(); i++){
             String str = list.get(i);
             String command = str.split(" ")[0];

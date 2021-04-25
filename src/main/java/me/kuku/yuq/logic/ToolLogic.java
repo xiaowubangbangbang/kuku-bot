@@ -20,7 +20,7 @@ public interface ToolLogic {
     String poisonousChickenSoup() throws IOException;
     String loveWords() throws IOException;
     String saying() throws IOException;
-    String queryIp(String ip) throws IOException;
+    Result<List<Map<String, String>>> queryIp(String ip) throws IOException;
     String queryWhois(String domain) throws IOException;
     String queryIcp(String domain) throws IOException;
     String zhiHuDaily() throws IOException;
@@ -42,7 +42,6 @@ public interface ToolLogic {
     String girlImage() throws IOException;
     String lolFree() throws IOException;
     String abbreviation(String content) throws IOException;
-    byte[] queryTime() throws IOException;
     String queryVersion() throws IOException;
     Result<Map<String, String>> bvToAv(String bv) throws IOException;
     String wordSegmentation(String text) throws IOException;
